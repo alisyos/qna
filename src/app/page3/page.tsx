@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 export default function Page3() {
   return (
     <div className="min-h-screen flex items-center justify-center">
