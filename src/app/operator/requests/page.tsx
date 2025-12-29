@@ -74,7 +74,7 @@ export default function OperatorRequestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-8 text-[0.9rem]">
       <div className="max-w-7xl mx-auto">
         {/* 헤더 */}
         <div className="mb-6">
@@ -155,7 +155,7 @@ export default function OperatorRequestsPage() {
             ) : (
               <Table className="table-fixed">
                 <TableHeader>
-                  <TableRow className="text-xs">
+                  <TableRow>
                     <TableHead className="w-[90px]">요청번호</TableHead>
                     <TableHead className="w-[100px]">클라이언트</TableHead>
                     <TableHead className="w-auto">제목</TableHead>
@@ -170,7 +170,7 @@ export default function OperatorRequestsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredRequests.map((request) => (
-                    <TableRow key={request.id} className="text-xs">
+                    <TableRow key={request.id}>
                       <TableCell className="font-mono truncate">
                         {request.request_number}
                       </TableCell>
