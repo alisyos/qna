@@ -257,6 +257,7 @@ export default function ClientRequestsPage() {
                 </Link>
               </div>
             ) : (
+              <>
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
@@ -333,6 +334,7 @@ export default function ClientRequestsPage() {
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
               />
+              </>
             )}
           </CardContent>
         </Card>

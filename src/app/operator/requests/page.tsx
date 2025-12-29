@@ -180,6 +180,7 @@ export default function OperatorRequestsPage() {
                 <p className="text-gray-500">조건에 맞는 요청이 없습니다.</p>
               </div>
             ) : (
+              <>
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
@@ -271,6 +272,7 @@ export default function OperatorRequestsPage() {
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
               />
+              </>
             )}
           </CardContent>
         </Card>
