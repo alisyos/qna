@@ -174,8 +174,9 @@ export default function OperatorRequestsPage() {
                       <TableCell className="font-mono truncate">
                         {request.request_number}
                       </TableCell>
-                      <TableCell className="font-medium truncate">
-                        {request.client?.department_name || '-'}
+                      <TableCell className="font-medium">
+                        <div className="truncate">{request.client?.department_name || '-'}</div>
+                        <div className="truncate text-gray-500 font-normal">{request.client?.contact_name || ''}</div>
                       </TableCell>
                       <TableCell className="truncate">
                         <Link
