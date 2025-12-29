@@ -45,8 +45,9 @@ import type { RequestType, AdPlatform, Priority } from '@/types'
 import { useAuthContext } from '@/components/layout/AuthProvider'
 import { useClientRequests, useUpdateRequest } from '@/hooks/useRequests'
 import { useComments } from '@/hooks/useComments'
+import { useAttachments, useFileUpload, useDeleteAttachment, useSignedUrl } from '@/hooks/useFileUpload'
 import type { RequestWithRelations } from '@/services/requests.service'
-import { Plus, Eye, MessageSquare, Check, Loader2, Pencil, X } from 'lucide-react'
+import { Plus, Eye, MessageSquare, Check, Loader2, Pencil, X, Paperclip, Download, Trash2, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -75,6 +76,66 @@ export default function ClientRequestsPage() {
 
   // 선택된 요청의 코멘트 조회
   const { data: comments = [] } = useComments(selectedRequest?.id)
+
+  // 첨부파일 관련
+  const { data: attachments = [] } = useAttachments(selectedRequest?.id)
+  const fileUpload = useFileUpload()
+  const deleteAttachment = useDeleteAttachment()
+  const getSignedUrl = useSignedUrl()
+
+  // 파일 다운로드
+  const handleDownload = async (filePath: string, fileName: string) => {
+    try {
+      const url = await getSignedUrl.mutateAsync({ filePath, fileName })
+      window.open(url, '_blank')
+    } catch (error) {
+      console.error('Download failed:', error)
+    }
+  }
+
+  // 파일 업로드
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !selectedRequest || !client || !client.user_id) return
+
+    const files = Array.from(e.target.files)
+    for (const file of files) {
+      try {
+        await fileUpload.mutateAsync({
+          file,
+          requestId: selectedRequest.id,
+          userId: client.user_id,
+        })
+      } catch (error) {
+        console.error('File upload failed:', error)
+      }
+    }
+    e.target.value = ''
+  }
+
+  // 파일 삭제
+  const handleDeleteFile = async (id: string, filePath: string) => {
+    if (!selectedRequest) return
+    if (!confirm('파일을 삭제하시겠습니까?')) return
+
+    try {
+      await deleteAttachment.mutateAsync({
+        id,
+        filePath,
+        requestId: selectedRequest.id,
+      })
+    } catch (error) {
+      console.error('File delete failed:', error)
+    }
+  }
+
+  // 파일 크기 포맷
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
 
   // 상태별 필터링
   const filteredRequests =
@@ -478,6 +539,77 @@ export default function ClientRequestsPage() {
                       />
                     </div>
 
+                    {/* 첨부파일 */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Paperclip className="w-4 h-4" />
+                        첨부파일
+                      </Label>
+                      {attachments.length > 0 && (
+                        <div className="space-y-2">
+                          {attachments.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Paperclip className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <span className="text-sm truncate">{file.file_name}</span>
+                                <span className="text-xs text-gray-400 flex-shrink-0">
+                                  ({formatFileSize(file.file_size)})
+                                </span>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => handleDownload(file.file_path, file.file_name)}
+                                >
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                                  onClick={() => handleDeleteFile(file.id, file.file_path)}
+                                  disabled={deleteAttachment.isPending}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id="file-upload-edit"
+                          multiple
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        <label htmlFor="file-upload-edit">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer"
+                            asChild
+                          >
+                            <span>
+                              <Upload className="w-4 h-4 mr-2" />
+                              파일 추가
+                            </span>
+                          </Button>
+                        </label>
+                        {fileUpload.isPending && (
+                          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+
                     {/* 수정 버튼 */}
                     <div className="flex gap-3 pt-4 border-t">
                       <Button
@@ -544,6 +676,40 @@ export default function ClientRequestsPage() {
                         </p>
                       </div>
                     </div>
+
+                    {/* 첨부파일 (보기 모드) */}
+                    {attachments.length > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2 flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          첨부파일
+                        </p>
+                        <div className="space-y-2">
+                          {attachments.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Paperclip className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <span className="text-sm truncate">{file.file_name}</span>
+                                <span className="text-xs text-gray-400 flex-shrink-0">
+                                  ({formatFileSize(file.file_size)})
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => handleDownload(file.file_path, file.file_name)}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 담당자 코멘트 */}
                     <div>
