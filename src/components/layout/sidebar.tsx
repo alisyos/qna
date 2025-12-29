@@ -107,7 +107,7 @@ export function Sidebar() {
               priority
             />
           </Link>
-          <p className="text-gray-500 mt-2" style={{ fontSize: '110%' }}>광고 대행 요청 관리 시스템</p>
+          <p className="text-gray-500 mt-2 text-sm">광고 대행 요청 관리 시스템</p>
         </div>
 
         {/* 대시보드 링크 - 클라이언트가 아닌 경우에만 표시 */}
