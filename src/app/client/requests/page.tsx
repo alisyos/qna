@@ -166,7 +166,7 @@ export default function ClientRequestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 text-[0.9rem]">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         {/* 헤더 */}
         <div className="flex justify-between items-center mb-6">

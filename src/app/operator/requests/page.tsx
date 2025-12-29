@@ -74,7 +74,7 @@ export default function OperatorRequestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 text-[0.9rem]">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         {/* 헤더 */}
         <div className="mb-6">

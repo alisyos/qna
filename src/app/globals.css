@@ -28,6 +28,10 @@
   --foreground: #171717;
 }
 
+html {
+  font-size: 90%;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
