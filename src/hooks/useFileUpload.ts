@@ -59,6 +59,7 @@ export function useDeleteAttachment() {
 
 export function useSignedUrl() {
   return useMutation({
-    mutationFn: (filePath: string) => storageService.getSignedUrl(filePath),
+    mutationFn: ({ filePath, fileName }: { filePath: string; fileName?: string }) =>
+      storageService.getSignedUrl(filePath, fileName),
   })
 }

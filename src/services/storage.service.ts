@@ -21,12 +21,17 @@ export const storageService = {
     return data.path
   },
 
-  async getSignedUrl(filePath: string): Promise<string> {
+  async getSignedUrl(filePath: string, downloadFileName?: string): Promise<string> {
     const supabase = createClient()
+
+    const options: { download?: string | boolean } = {}
+    if (downloadFileName) {
+      options.download = downloadFileName
+    }
 
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .createSignedUrl(filePath, 3600) // 1 hour expiry
+      .createSignedUrl(filePath, 3600, options) // 1 hour expiry
 
     if (error) throw error
     return data.signedUrl

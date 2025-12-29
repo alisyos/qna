@@ -119,11 +119,8 @@ export default function RequestDetailPage() {
 
   const handleDownload = async (filePath: string, fileName: string) => {
     try {
-      const url = await getSignedUrl.mutateAsync(filePath)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = fileName
-      link.click()
+      const url = await getSignedUrl.mutateAsync({ filePath, fileName })
+      window.open(url, '_blank')
     } catch (error) {
       console.error('Download failed:', error)
     }
