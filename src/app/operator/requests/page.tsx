@@ -153,47 +153,48 @@ export default function OperatorRequestsPage() {
                 <p className="text-gray-500">조건에 맞는 요청이 없습니다.</p>
               </div>
             ) : (
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">요청번호</TableHead>
-                    <TableHead className="w-[120px]">클라이언트</TableHead>
-                    <TableHead>제목</TableHead>
-                    <TableHead className="w-[100px]">유형</TableHead>
-                    <TableHead className="w-[100px]">플랫폼</TableHead>
-                    <TableHead className="w-[80px]">긴급도</TableHead>
-                    <TableHead className="w-[80px]">상태</TableHead>
-                    <TableHead className="w-[100px]">담당자</TableHead>
-                    <TableHead className="w-[100px]">등록일</TableHead>
-                    <TableHead className="w-[100px]">액션</TableHead>
+                  <TableRow className="text-xs">
+                    <TableHead className="w-[90px]">요청번호</TableHead>
+                    <TableHead className="w-[100px]">클라이언트</TableHead>
+                    <TableHead className="w-auto">제목</TableHead>
+                    <TableHead className="w-[80px]">유형</TableHead>
+                    <TableHead className="w-[80px]">플랫폼</TableHead>
+                    <TableHead className="w-[60px]">긴급도</TableHead>
+                    <TableHead className="w-[70px]">상태</TableHead>
+                    <TableHead className="w-[70px]">담당자</TableHead>
+                    <TableHead className="w-[85px]">등록일</TableHead>
+                    <TableHead className="w-[60px]">액션</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-mono text-sm">
+                    <TableRow key={request.id} className="text-xs">
+                      <TableCell className="font-mono truncate">
                         {request.request_number}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium truncate">
                         {request.client?.department_name || '-'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="truncate">
                         <Link
                           href={`/operator/requests/${request.id}`}
                           className="hover:text-blue-600 hover:underline"
+                          title={request.title}
                         >
                           {request.title}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="truncate">
                         {REQUEST_TYPE_LABELS[request.request_type]}
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="truncate">
                         {PLATFORM_LABELS[request.platform]}
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-1.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
                             PRIORITY_COLORS[request.priority]
                           }`}
                         >
@@ -202,33 +203,33 @@ export default function OperatorRequestsPage() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-1.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
                             STATUS_COLORS[request.status]
                           }`}
                         >
                           {STATUS_LABELS[request.status]}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="truncate">
                         {request.operator?.name ? (
-                          <span className="text-sm">{request.operator.name}</span>
+                          <span>{request.operator.name}</span>
                         ) : (
-                          <span className="text-sm text-gray-400">미배정</span>
+                          <span className="text-gray-400">미배정</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-gray-600">
                         {format(parseISO(request.created_at), 'MM.dd HH:mm')}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-0.5">
                           <Link href={`/operator/requests/${request.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <Eye className="w-3.5 h-3.5" />
                             </Button>
                           </Link>
                           {!request.operator_id && (
-                            <Button variant="ghost" size="sm">
-                              <UserPlus className="w-4 h-4" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <UserPlus className="w-3.5 h-3.5" />
                             </Button>
                           )}
                         </div>

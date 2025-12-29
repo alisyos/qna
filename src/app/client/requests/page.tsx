@@ -240,40 +240,43 @@ export default function ClientRequestsPage() {
                 </Link>
               </div>
             ) : (
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">요청번호</TableHead>
-                    <TableHead>제목</TableHead>
-                    <TableHead className="w-[120px]">요청유형</TableHead>
-                    <TableHead className="w-[100px]">플랫폼</TableHead>
-                    <TableHead className="w-[80px]">긴급도</TableHead>
-                    <TableHead className="w-[100px]">상태</TableHead>
-                    <TableHead className="w-[120px]">등록일</TableHead>
-                    <TableHead className="w-[80px]">상세</TableHead>
+                  <TableRow className="text-xs">
+                    <TableHead className="w-[90px]">요청번호</TableHead>
+                    <TableHead className="w-auto">제목</TableHead>
+                    <TableHead className="w-[80px]">요청유형</TableHead>
+                    <TableHead className="w-[80px]">플랫폼</TableHead>
+                    <TableHead className="w-[60px]">긴급도</TableHead>
+                    <TableHead className="w-[70px]">상태</TableHead>
+                    <TableHead className="w-[85px]">등록일</TableHead>
+                    <TableHead className="w-[50px]">상세</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-mono text-sm">
+                    <TableRow key={request.id} className="text-xs">
+                      <TableCell className="font-mono truncate">
                         {request.request_number}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="truncate">
                         <button
                           onClick={() => openDetail(request)}
-                          className="text-left hover:text-blue-600 hover:underline"
+                          className="text-left hover:text-blue-600 hover:underline truncate block w-full"
+                          title={request.title}
                         >
                           {request.title}
                         </button>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="truncate">
                         {REQUEST_TYPE_LABELS[request.request_type]}
                       </TableCell>
-                      <TableCell>{PLATFORM_LABELS[request.platform]}</TableCell>
+                      <TableCell className="truncate">
+                        {PLATFORM_LABELS[request.platform]}
+                      </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-1.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
                             PRIORITY_COLORS[request.priority]
                           }`}
                         >
@@ -282,14 +285,14 @@ export default function ClientRequestsPage() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-1.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
                             STATUS_COLORS[request.status]
                           }`}
                         >
                           {STATUS_LABELS[request.status]}
                         </span>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-gray-600">
                         {format(new Date(request.created_at), 'MM.dd HH:mm', {
                           locale: ko,
                         })}
@@ -298,9 +301,10 @@ export default function ClientRequestsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-7 w-7 p-0"
                           onClick={() => openDetail(request)}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>
