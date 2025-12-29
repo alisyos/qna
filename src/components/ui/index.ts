@@ -40,3 +40,4 @@ export {
 } from "./table"
 export { Textarea } from "./textarea"
 export { Toggle, toggleVariants } from "./toggle"
+export { Pagination } from "./pagination"

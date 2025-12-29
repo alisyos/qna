@@ -31,6 +31,7 @@ import {
   Textarea,
   RadioGroup,
   RadioGroupItem,
+  Pagination,
 } from '@/components/ui'
 import {
   REQUEST_TYPE_LABELS,
@@ -49,12 +50,15 @@ import { Plus, Eye, MessageSquare, Check, Loader2, Pencil, X } from 'lucide-reac
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
+const ITEMS_PER_PAGE = 20
+
 export default function ClientRequestsPage() {
   const { client } = useAuthContext()
   const { data: requests = [], isLoading } = useClientRequests(client?.id)
   const updateRequest = useUpdateRequest()
 
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
   const [selectedRequest, setSelectedRequest] = useState<RequestWithRelations | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -77,6 +81,19 @@ export default function ClientRequestsPage() {
     statusFilter === 'all'
       ? requests
       : requests.filter((req) => req.status === statusFilter)
+
+  // 페이지네이션
+  const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE)
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
+  // 필터 변경 시 페이지 리셋
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value)
+    setCurrentPage(1)
+  }
 
   // 요청 상세 보기
   const openDetail = (request: RequestWithRelations) => {
@@ -196,7 +213,7 @@ export default function ClientRequestsPage() {
               className={`cursor-pointer transition-all ${
                 statusFilter === item.key ? 'ring-2 ring-blue-500' : ''
               }`}
-              onClick={() => setStatusFilter(item.key)}
+              onClick={() => handleStatusFilter(item.key)}
             >
               <CardContent className="pt-4 pb-4">
                 <div className="text-center">
@@ -215,7 +232,7 @@ export default function ClientRequestsPage() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>요청 목록</CardTitle>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleStatusFilter}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -254,7 +271,7 @@ export default function ClientRequestsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRequests.map((request) => (
+                  {paginatedRequests.map((request) => (
                     <TableRow key={request.id}>
                       <TableCell className="font-mono truncate">
                         {request.request_number}
@@ -311,6 +328,11 @@ export default function ClientRequestsPage() {
                   ))}
                 </TableBody>
               </Table>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             )}
           </CardContent>
         </Card>

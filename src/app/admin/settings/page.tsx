@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  Pagination,
 } from '@/components/ui'
 import { REQUEST_TYPE_LABELS } from '@/types'
 import type { RequestType } from '@/types'
@@ -51,6 +52,8 @@ import {
   Key,
 } from 'lucide-react'
 
+const ITEMS_PER_PAGE = 20
+
 export default function AdminSettingsPage() {
   const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: operators = [], isLoading: operatorsLoading } = useOperators()
@@ -61,6 +64,21 @@ export default function AdminSettingsPage() {
   const deleteOperator = useDeleteOperator()
 
   const [activeTab, setActiveTab] = useState<'clients' | 'operators' | 'categories'>('clients')
+  const [clientsPage, setClientsPage] = useState(1)
+  const [operatorsPage, setOperatorsPage] = useState(1)
+
+  // 페이지네이션
+  const clientsTotalPages = Math.ceil(clients.length / ITEMS_PER_PAGE)
+  const paginatedClients = clients.slice(
+    (clientsPage - 1) * ITEMS_PER_PAGE,
+    clientsPage * ITEMS_PER_PAGE
+  )
+
+  const operatorsTotalPages = Math.ceil(operators.length / ITEMS_PER_PAGE)
+  const paginatedOperators = operators.slice(
+    (operatorsPage - 1) * ITEMS_PER_PAGE,
+    operatorsPage * ITEMS_PER_PAGE
+  )
   const [isAddClientOpen, setIsAddClientOpen] = useState(false)
   const [isAddOperatorOpen, setIsAddOperatorOpen] = useState(false)
   const [isEditClientOpen, setIsEditClientOpen] = useState(false)
@@ -447,7 +465,7 @@ export default function AdminSettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((client) => (
+                  {paginatedClients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">
                         {client.department_name}
@@ -500,6 +518,11 @@ export default function AdminSettingsPage() {
                   ))}
                 </TableBody>
               </Table>
+              <Pagination
+                currentPage={clientsPage}
+                totalPages={clientsTotalPages}
+                onPageChange={setClientsPage}
+              />
             </CardContent>
           </Card>
         )}
@@ -534,7 +557,7 @@ export default function AdminSettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {operators.map((operator) => (
+                  {paginatedOperators.map((operator) => (
                     <TableRow key={operator.id}>
                       <TableCell className="font-medium">
                         {operator.name}
@@ -582,6 +605,11 @@ export default function AdminSettingsPage() {
                   ))}
                 </TableBody>
               </Table>
+              <Pagination
+                currentPage={operatorsPage}
+                totalPages={operatorsTotalPages}
+                onPageChange={setOperatorsPage}
+              />
             </CardContent>
           </Card>
         )}

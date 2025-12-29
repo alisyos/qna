@@ -22,6 +22,7 @@ import {
   TableHead,
   TableRow,
   TableCell,
+  Pagination,
 } from '@/components/ui'
 import {
   REQUEST_TYPE_LABELS,
@@ -35,11 +36,14 @@ import { useRequests } from '@/hooks/useRequests'
 import { Search, Filter, Eye, UserPlus, Loader2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 
+const ITEMS_PER_PAGE = 20
+
 export default function OperatorRequestsPage() {
   const { data: requests = [], isLoading } = useRequests()
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
 
   // 필터링된 요청 목록
   const filteredRequests = requests.filter((request) => {
@@ -55,6 +59,29 @@ export default function OperatorRequestsPage() {
 
     return matchesStatus && matchesPriority && matchesSearch
   })
+
+  // 페이지네이션
+  const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE)
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
+  // 필터 변경 시 페이지 리셋
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value)
+    setCurrentPage(1)
+  }
+
+  const handlePriorityFilter = (value: string) => {
+    setPriorityFilter(value)
+    setCurrentPage(1)
+  }
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value)
+    setCurrentPage(1)
+  }
 
   // 상태별 카운트
   const statusCounts = {
@@ -96,7 +123,7 @@ export default function OperatorRequestsPage() {
             <Button
               key={tab.key}
               variant={statusFilter === tab.key ? 'default' : 'outline'}
-              onClick={() => setStatusFilter(tab.key)}
+              onClick={() => handleStatusFilter(tab.key)}
               className="relative"
             >
               {tab.label}
@@ -122,11 +149,11 @@ export default function OperatorRequestsPage() {
                 <Input
                   placeholder="요청번호, 제목, 클라이언트명으로 검색"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <Select value={priorityFilter} onValueChange={handlePriorityFilter}>
                 <SelectTrigger className="w-[150px]">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="긴급도" />
@@ -169,7 +196,7 @@ export default function OperatorRequestsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRequests.map((request) => (
+                  {paginatedRequests.map((request) => (
                     <TableRow key={request.id}>
                       <TableCell className="font-mono truncate">
                         {request.request_number}
@@ -239,6 +266,11 @@ export default function OperatorRequestsPage() {
                   ))}
                 </TableBody>
               </Table>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             )}
           </CardContent>
         </Card>
