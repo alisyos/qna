@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   description: "키워드 광고 대행 클라이언트 요청 관리 시스템",
 };
 
+// 동적 렌더링 강제 (SSG 비활성화)
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{

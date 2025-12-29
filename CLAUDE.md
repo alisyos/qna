@@ -11,16 +11,20 @@
 키워드 광고 운영 대행 업무 수행 시 다수의 클라이언트 담당자로부터 발생하는 문의 및 요청 사항을 체계적으로 접수·추적·처리하기 위한 웹 기반 관리 시스템입니다.
 
 ### 주요 기능
-- **클라이언트 포털**: 요청 등록, 요청 현황 조회, 코멘트 확인
-- **운영 담당자 페이지**: 대시보드, 요청 처리, 클라이언트 관리
-- **관리자 페이지**: 통계/리포트, 시스템 관리(계정, 카테고리, 알림 설정)
+- **클라이언트 포털**: 요청 등록/수정, 요청 현황 조회, 담당자 코멘트 확인
+- **운영 담당자 페이지**: 대시보드(홈), 요청 처리, 코멘트 작성
+- **관리자 페이지**: 통계/리포트, 시스템 관리(클라이언트/담당자 계정 관리)
 
-### 사용자 역할
-| 구분 | 역할 | 주요 기능 |
-|------|------|----------|
-| 클라이언트 담당자 | 요청 등록자 | 문의/요청 등록, 진행 상황 확인, 완료 확인 |
-| 광고 운영 담당자 | 처리자 | 요청 접수, 처리, 상태 업데이트, 코멘트 작성 |
-| 관리자 | 시스템 관리 | 담당자 배정, 통계 확인, 클라이언트 관리, 권한 설정 |
+### 사용자 역할 및 접근 제어
+| 구분 | 역할 | 주요 기능 | 접근 가능 메뉴 |
+|------|------|----------|---------------|
+| 클라이언트 담당자 | 요청 등록자 | 문의/요청 등록/수정, 진행 상황 확인, 완료 확인 | 요청 등록, 요청 현황 |
+| 광고 운영 담당자 | 처리자 | 요청 접수, 처리, 상태 업데이트, 코멘트 작성 | 대시보드, 요청 처리 |
+| 관리자 | 시스템 관리 | 담당자 배정, 통계 확인, 계정 관리, 권한 설정 | 대시보드, 요청 처리, 통계, 시스템 관리 |
+
+**역할별 기본 페이지**:
+- 클라이언트: `/client/requests` (요청 현황)
+- 운영 담당자/관리자: `/` (대시보드)
 
 ## 개발 명령어
 
@@ -56,15 +60,19 @@ npm run lint
 
 ### 레이아웃 구조
 - **사이드바 레이아웃**: 왼쪽 고정 사이드바 (230px) + 메인 콘텐츠
+- **로고**: `public/logo.jpg` (AIWEB 로고, 126x35px)
 - **사이드바 컴포넌트**: `src/components/layout/sidebar.tsx`
 - **인증 프로바이더**: `src/components/layout/AuthProvider.tsx`
-- **메뉴 구조**: 클라이언트 포털, 운영 담당자, 관리자 섹션으로 구분
+- **메뉴 구조**: 역할에 따라 다른 메뉴 표시
+  - 클라이언트: 요청 등록, 요청 현황
+  - 운영 담당자: 대시보드, 요청 처리
+  - 관리자: 대시보드, 요청 처리, 통계, 시스템 관리
 
 ### 폴더 구조
 ```
 src/
 ├── app/                           # Next.js App Router 페이지들
-│   ├── page.tsx                   # 홈 (대시보드 요약)
+│   ├── page.tsx                   # 홈 (대시보드) - 클라이언트는 /client/requests로 리다이렉트
 │   ├── login/page.tsx             # 로그인 페이지
 │   ├── api/admin/                 # 관리자 API 라우트
 │   │   ├── clients/route.ts       # 클라이언트 생성 API
@@ -72,20 +80,18 @@ src/
 │   │   └── users/password/route.ts # 비밀번호 변경 API
 │   ├── client/                    # 클라이언트 포털
 │   │   ├── request/new/page.tsx   # 요청 등록
-│   │   └── requests/page.tsx      # 요청 현황
+│   │   └── requests/page.tsx      # 요청 현황 (상세 보기/수정 포함)
 │   ├── operator/                  # 운영 담당자
-│   │   ├── dashboard/page.tsx     # 대시보드
 │   │   ├── requests/page.tsx      # 요청 처리 목록
-│   │   ├── requests/[id]/page.tsx # 요청 상세/처리
-│   │   └── clients/page.tsx       # 클라이언트 관리
+│   │   └── requests/[id]/page.tsx # 요청 상세/처리
 │   └── admin/                     # 관리자
 │       ├── statistics/page.tsx    # 통계
-│       └── settings/page.tsx      # 시스템 관리
+│       └── settings/page.tsx      # 시스템 관리 (클라이언트/담당자 계정 관리)
 ├── components/
 │   ├── ui/                        # Radix UI 기반 커스텀 컴포넌트
 │   └── layout/
-│       ├── sidebar.tsx            # 사이드바 네비게이션
-│       └── AuthProvider.tsx       # 인증 상태 관리
+│       ├── sidebar.tsx            # 사이드바 네비게이션 (역할별 메뉴 필터링)
+│       └── AuthProvider.tsx       # 인증 상태 관리 (isLoading 포함)
 ├── lib/
 │   ├── utils.ts                   # 유틸리티 함수 (cn)
 │   └── supabase/
@@ -102,7 +108,7 @@ src/
 │   └── storage.service.ts         # 파일 업로드/다운로드
 ├── hooks/                         # React Query 훅
 │   ├── useAuth.ts
-│   ├── useRequests.ts
+│   ├── useRequests.ts             # useUpdateRequest 포함
 │   ├── useComments.ts
 │   ├── useClients.ts
 │   ├── useOperators.ts
@@ -134,6 +140,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 2. 세션 확인: `AuthProvider`에서 `onAuthStateChange` 리스너로 처리
 3. 프로필 조회: `authService.getProfile()` (REST API 직접 호출)
 4. 클라이언트 역할인 경우: `clientsService.getByUserId()` 추가 조회
+5. 역할별 리다이렉트: 클라이언트는 `/client/requests`로, 그 외는 `/`로
 
 ### 관리자 API 라우트
 | 경로 | 메서드 | 설명 |
@@ -210,6 +217,14 @@ type UserRole = 'admin' | 'operator' | 'client'
 
 ## 페이지별 기능
 
+### 홈/대시보드 (`/`)
+- 운영 담당자/관리자 전용 (클라이언트는 자동 리다이렉트)
+- 오늘 접수, 미처리 요청, 처리중, 기한 임박 통계 카드
+- 긴급도별 미처리 요청 현황
+- 내 담당 요청 목록
+- 처리 기한 임박 알림
+- 오늘 접수된 요청 목록
+
 ### 시스템 관리 (`/admin/settings`)
 - **클라이언트 관리**: 추가/수정/삭제, 비밀번호 변경
 - **담당자 관리**: 추가/수정/삭제, 비밀번호 변경
@@ -218,16 +233,17 @@ type UserRole = 'admin' | 'operator' | 'client'
 ### 클라이언트 포털
 - `/client/request/new`: 요청 등록 (파일 첨부 포함)
 - `/client/requests`: 본인 요청 목록 조회
+  - 상세 보기 다이얼로그
+  - 요청 수정 기능 (접수대기 상태일 때만 가능)
+  - 담당자 코멘트 조회 (읽기 전용)
 
 ### 운영 담당자 페이지
-- `/operator/dashboard`: 대시보드
 - `/operator/requests`: 요청 처리 목록
-- `/operator/requests/[id]`: 요청 상세/처리
-- `/operator/clients`: 클라이언트 관리
+- `/operator/requests/[id]`: 요청 상세/처리, 코멘트 작성
 
 ### 관리자 페이지
 - `/admin/statistics`: 통계
-- `/admin/settings`: 시스템 관리
+- `/admin/settings`: 시스템 관리 (클라이언트/담당자 계정 관리)
 
 ## UI 컴포넌트 사용법
 
@@ -253,6 +269,9 @@ import {
 } from '@/types'
 ```
 
+### Select 컴포넌트 스타일
+- 드롭다운 배경: `bg-white` (불투명 흰색)
+
 ## 개발 가이드라인
 
 ### 사용해야 할 것
@@ -266,6 +285,8 @@ import {
 - ⚠️ AuthProvider 내부에서 Supabase 클라이언트 쿼리 사용 시 세션 타이밍 문제 주의
 - ⚠️ 관리자 API는 반드시 Bearer 토큰 인증 사용
 - ⚠️ Supabase 타입 에러 시 `as never` 캐스팅 고려
+- ⚠️ 클라이언트는 코멘트 작성 불가 (담당자만 작성 가능)
+- ⚠️ 요청 수정은 접수대기(pending) 상태에서만 가능
 
 ### 구현 완료 후 필수 검증
 ```bash
@@ -273,16 +294,27 @@ npm run build
 ```
 TypeScript 오류, ESLint 오류, 컴파일 오류 등을 사전에 발견하고 해결해야 합니다.
 
-## 향후 작업 예정
+## 변경 이력
 
-### 완료된 작업
+### 2024-12-29 업데이트
+- ✅ 클라이언트 관리 페이지(`/operator/clients`) 삭제 - 시스템 관리와 중복
+- ✅ 대시보드를 홈페이지(`/`)로 통합 - `/operator/dashboard` 삭제
+- ✅ 클라이언트 요청 수정 기능 추가 (접수대기 상태에서만)
+- ✅ 클라이언트 코멘트 입력 기능 제거 (담당자만 작성 가능)
+- ✅ 역할별 메뉴 접근 제어 적용 (클라이언트는 대시보드 접근 불가)
+- ✅ 클라이언트 로그인 시 기본 페이지를 `/client/requests`로 설정
+- ✅ 셀렉트박스 드롭다운 배경 흰색 불투명으로 변경
+- ✅ 사이드바 로고 이미지 적용 (`public/logo.jpg`)
+- ✅ AuthContext에 `isLoading` 속성 추가
+
+### 이전 완료 작업
 - ✅ Supabase 연동 (Auth, Database)
 - ✅ 관리자 시스템 설정 페이지 (클라이언트/담당자 CRUD)
 - ✅ 계정 생성 시 로그인 계정 동시 생성
 - ✅ 비밀번호 변경 기능
 
-### 진행 예정
-- 클라이언트 포털 Supabase 연동 테스트
-- 파일 업로드 (Supabase Storage) 연동
-- 요청 생성/조회/수정 기능 완성
-- 코멘트 기능 완성
+## GitHub 저장소
+
+```
+https://github.com/alisyos/qna.git
+```

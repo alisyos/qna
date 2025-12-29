@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { authService } from '@/services/auth.service'
 import { clientsService } from '@/services/clients.service'
@@ -34,6 +34,7 @@ export const useAuthContext = () => useContext(AuthContext)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [client, setClient] = useState<Client | null>(null)
@@ -111,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
           setProfile(null)
           setClient(null)
-          window.location.href = '/login'
+          router.push('/login')
         }
       }
     )
@@ -179,9 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (isLoginPage) {
     if (isAuthenticated) {
       // 이미 로그인된 상태면 홈으로
-      if (typeof window !== 'undefined') {
-        window.location.href = '/'
-      }
+      router.push('/')
       return null
     }
     return (
@@ -193,9 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 비인증 상태에서 보호된 페이지 접근
   if (!isAuthenticated) {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-    }
+    router.push('/login')
     return null
   }
 
