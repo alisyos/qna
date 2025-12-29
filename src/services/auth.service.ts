@@ -43,8 +43,12 @@ export const authService = {
 
   async signOut() {
     const supabase = createClient()
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      // 세션이 이미 없는 경우 에러 무시
+      console.log('SignOut error (ignored):', error)
+    }
   },
 
   async getCurrentUser() {
