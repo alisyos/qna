@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { authService } from '@/services/auth.service'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Input, Label } from '@/components/ui'
 import { LogIn, AlertCircle } from 'lucide-react'
@@ -42,8 +43,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">지피티코리아</h1>
-          <p className="text-gray-600 mt-1">광고 대행 요청 관리 시스템</p>
+          <Image
+            src="/logo.jpg"
+            alt="AIWEB 로고"
+            width={180}
+            height={50}
+            className="object-contain mx-auto"
+            priority
+          />
+          <p className="text-gray-600 mt-3">광고 대행 요청 관리 시스템</p>
         </div>
 
         <Card>

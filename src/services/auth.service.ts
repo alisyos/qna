@@ -44,7 +44,8 @@ export const authService = {
   async signOut() {
     const supabase = createClient()
     try {
-      await supabase.auth.signOut()
+      // scope: 'local'로 변경하여 현재 브라우저의 세션만 제거
+      await supabase.auth.signOut({ scope: 'local' })
     } catch (error) {
       // 세션이 이미 없는 경우 에러 무시
       console.log('SignOut error (ignored):', error)
