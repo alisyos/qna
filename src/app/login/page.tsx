@@ -90,20 +90,6 @@ export default function LoginPage() {
             </form>
           </CardContent>
         </Card>
-
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-base">Supabase 설정 안내</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-gray-600 space-y-2">
-              <p>1. Supabase 프로젝트를 생성하세요.</p>
-              <p>2. <code className="bg-gray-100 px-1 rounded">.env.local</code> 파일에 환경 변수를 설정하세요.</p>
-              <p>3. SQL 스키마를 Supabase SQL Editor에서 실행하세요.</p>
-              <p>4. Supabase Dashboard에서 사용자를 생성하세요.</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )
