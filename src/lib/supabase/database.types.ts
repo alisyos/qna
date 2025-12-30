@@ -55,6 +55,7 @@ export type Database = {
           contact_name: string
           email: string
           phone: string | null
+          assigned_operator_id: string | null
           status: 'active' | 'inactive'
           created_at: string
           updated_at: string
@@ -66,6 +67,7 @@ export type Database = {
           contact_name: string
           email: string
           phone?: string | null
+          assigned_operator_id?: string | null
           status?: 'active' | 'inactive'
           created_at?: string
           updated_at?: string
@@ -77,6 +79,7 @@ export type Database = {
           contact_name?: string
           email?: string
           phone?: string | null
+          assigned_operator_id?: string | null
           status?: 'active' | 'inactive'
           created_at?: string
           updated_at?: string

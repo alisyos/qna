@@ -130,10 +130,10 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 ### 데이터베이스 테이블
 - `profiles` - 사용자 프로필 (auth.users 확장)
-- `clients` - 클라이언트 정보 (user_id로 profiles와 연결)
+- `clients` - 클라이언트 정보 (user_id로 profiles와 연결, assigned_operator_id로 기본 담당자 배정)
 - `requests` - 요청 건
-- `request_comments` - 코멘트
-- `request_attachments` - 첨부파일
+- `request_comments` - 코멘트 (author_id는 NULL 허용 - 삭제된 사용자 대응)
+- `request_attachments` - 첨부파일 (uploaded_by는 NULL 허용 - 삭제된 사용자 대응)
 
 ### 인증 플로우
 1. 로그인: `authService.signIn()` → Supabase Auth
@@ -226,9 +226,10 @@ type UserRole = 'admin' | 'operator' | 'client'
 - 오늘 접수된 요청 목록
 
 ### 시스템 관리 (`/admin/settings`)
-- **클라이언트 관리**: 추가/수정/삭제, 비밀번호 변경
+- **클라이언트 관리**: 추가/수정/삭제, 비밀번호 변경, 담당자 배정
 - **담당자 관리**: 추가/수정/삭제, 비밀번호 변경
 - 계정 생성 시 Auth 사용자 + Profile + (Client) 레코드 동시 생성
+- 클라이언트별 담당자 배정 시 해당 클라이언트의 요청이 자동으로 담당자에게 배정됨
 
 ### 클라이언트 포털
 - `/client/request/new`: 요청 등록 (파일 첨부 포함)
@@ -239,7 +240,7 @@ type UserRole = 'admin' | 'operator' | 'client'
 
 ### 운영 담당자 페이지
 - `/operator/requests`: 요청 처리 목록
-- `/operator/requests/[id]`: 요청 상세/처리, 코멘트 작성
+- `/operator/requests/[id]`: 요청 상세/처리, 코멘트 작성, 담당자 변경 가능
 
 ### 관리자 페이지
 - `/admin/statistics`: 통계
@@ -288,6 +289,17 @@ import {
 - ⚠️ 클라이언트는 코멘트 작성 불가 (담당자만 작성 가능)
 - ⚠️ 요청 수정은 접수대기(pending) 상태에서만 가능
 
+### 미적용 마이그레이션 (Supabase SQL Editor에서 실행 필요)
+아래 마이그레이션 파일들이 생성되어 있으며, Supabase에 적용해야 합니다:
+
+1. **`supabase/migrations/20241230_fix_cascade_delete.sql`**
+   - 코멘트/첨부파일의 외래 키를 ON DELETE SET NULL로 변경
+   - 계정 삭제 시 데이터 보존
+
+2. **`supabase/migrations/20241230_add_assigned_operator.sql`**
+   - clients 테이블에 assigned_operator_id 필드 추가
+   - 클라이언트별 담당자 자동 배정 기능
+
 ### 구현 완료 후 필수 검증
 ```bash
 npm run build
@@ -296,7 +308,20 @@ TypeScript 오류, ESLint 오류, 컴파일 오류 등을 사전에 발견하고
 
 ## 변경 이력
 
-### 2024-12-30 업데이트
+### 2024-12-30 업데이트 (2차)
+- ✅ 요청 처리 상세 페이지에서 담당자 변경 기능 추가 (배정 후에도 다른 담당자로 변경 가능)
+- ✅ 계정 삭제 시 데이터 보존 개선
+  - `request_comments.author_id`: ON DELETE CASCADE → SET NULL
+  - `request_attachments.uploaded_by`: ON DELETE CASCADE → SET NULL
+  - 삭제된 사용자의 코멘트/첨부파일은 "삭제된 사용자"로 표시
+- ✅ 클라이언트별 담당자 배정 기능 추가
+  - `clients` 테이블에 `assigned_operator_id` 필드 추가
+  - 시스템 관리 페이지에서 클라이언트별 담당자 배정/변경 가능
+  - 클라이언트 수정 다이얼로그에 담당자 선택 필드 추가
+- ✅ 요청 생성 시 담당자 자동 배정 (클라이언트에 배정된 담당자가 자동으로 설정됨)
+- ✅ 담당자 목록에서 활성 상태인 담당자만 선택 가능하도록 필터링
+
+### 2024-12-30 업데이트 (1차)
 - ✅ 요청 처리 상세 페이지 상태 변경을 셀렉트박스로 변경 (자유롭게 상태 전환 가능)
 - ✅ 코멘트에 파일 첨부 기능 추가 (`request_attachments` 테이블에 `comment_id` 필드 추가)
 - ✅ 클라이언트 요청 현황 페이지에서 코멘트 첨부파일 표시 및 다운로드 기능

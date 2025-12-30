@@ -573,10 +573,10 @@ export default function RequestDetailPage() {
                           <>
                             <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-sm">
-                                  {comment.author?.name || '알 수 없음'}
+                                <span className={`font-medium text-sm ${!comment.author ? 'text-gray-400 italic' : ''}`}>
+                                  {comment.author?.name || '삭제된 사용자'}
                                 </span>
-                                {comment.author?.role !== 'client' && (
+                                {comment.author && comment.author.role !== 'client' && (
                                   <span className="text-xs text-gray-500">
                                     (담당자)
                                   </span>
@@ -787,28 +787,28 @@ export default function RequestDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {request.operator?.name ? (
-                  <div>
-                    <p className="font-medium">{request.operator.name}</p>
-                    <p className="text-sm text-gray-500">{request.operator.department || '광고운영팀'}</p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-gray-400 mb-3">담당자 미배정</p>
-                    <Select onValueChange={handleAssignOperator}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="담당자 배정" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {operators
-                          .filter((op) => op.role === 'operator')
-                          .map((op) => (
-                            <SelectItem key={op.id} value={op.id}>
-                              {op.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                <Select
+                  value={request.operator_id || ''}
+                  onValueChange={handleAssignOperator}
+                  disabled={assignOperator.isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="담당자 배정" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {operators
+                      .filter((op) => op.role === 'operator' || op.role === 'admin')
+                      .map((op) => (
+                        <SelectItem key={op.id} value={op.id}>
+                          {op.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {assignOperator.isPending && (
+                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    변경 중...
                   </div>
                 )}
               </CardContent>

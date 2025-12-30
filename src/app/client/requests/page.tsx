@@ -743,8 +743,8 @@ export default function ClientRequestsPage() {
                               className="p-3 rounded-lg bg-white border border-blue-100 shadow-sm"
                             >
                               <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-semibold text-gray-800">
-                                  {comment.author?.name || '담당자'}
+                                <span className={`text-sm font-semibold ${!comment.author ? 'text-gray-400 italic' : 'text-gray-800'}`}>
+                                  {comment.author?.name || '삭제된 사용자'}
                                 </span>
                                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                                   {format(new Date(comment.created_at), 'MM.dd HH:mm')}

@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS clients (
   contact_name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
+  assigned_operator_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   status account_status DEFAULT 'active',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -115,7 +116,7 @@ CREATE TABLE IF NOT EXISTS requests (
 CREATE TABLE IF NOT EXISTS request_comments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
-  author_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  author_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   content TEXT NOT NULL,
   is_internal BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -132,7 +133,7 @@ CREATE TABLE IF NOT EXISTS request_attachments (
   file_path TEXT NOT NULL,
   file_size BIGINT NOT NULL,
   mime_type TEXT,
-  uploaded_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  uploaded_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

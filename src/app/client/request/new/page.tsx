@@ -75,9 +75,10 @@ export default function NewRequestPage() {
     }
 
     try {
-      // 요청 생성
+      // 요청 생성 (클라이언트에 배정된 담당자가 있으면 자동 배정)
       const newRequest = await createRequest.mutateAsync({
         client_id: client.id,
+        operator_id: client.assigned_operator_id || null,
         request_type: data.requestType as RequestType,
         platform: data.platform as AdPlatform,
         priority: data.priority as Priority,

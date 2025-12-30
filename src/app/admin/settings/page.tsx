@@ -37,8 +37,8 @@ import type { RequestType } from '@/types'
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients'
 import { useOperators, useUpdateOperator, useDeleteOperator } from '@/hooks/useOperators'
 import type { Database } from '@/lib/supabase/database.types'
+import type { ClientWithOperator } from '@/services/clients.service'
 
-type Client = Database['public']['Tables']['clients']['Row']
 type Profile = Database['public']['Tables']['profiles']['Row']
 import {
   Users,
@@ -84,7 +84,7 @@ export default function AdminSettingsPage() {
   const [isEditClientOpen, setIsEditClientOpen] = useState(false)
   const [isEditOperatorOpen, setIsEditOperatorOpen] = useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [selectedClient, setSelectedClient] = useState<ClientWithOperator | null>(null)
   const [selectedOperator, setSelectedOperator] = useState<Profile | null>(null)
   const [passwordTarget, setPasswordTarget] = useState<{ userId: string; name: string; type: 'client' | 'operator' } | null>(null)
   const [newPassword, setNewPassword] = useState('')
@@ -107,6 +107,7 @@ export default function AdminSettingsPage() {
     email: '',
     phone: '',
     status: 'active' as 'active' | 'inactive',
+    assigned_operator_id: '' as string | null,
   })
 
   // 담당자 수정 폼 상태
@@ -251,7 +252,7 @@ export default function AdminSettingsPage() {
   }
 
   // 클라이언트 수정 다이얼로그 열기
-  const openEditClient = (client: Client) => {
+  const openEditClient = (client: ClientWithOperator) => {
     setSelectedClient(client)
     setEditClientForm({
       department_name: client.department_name,
@@ -259,8 +260,19 @@ export default function AdminSettingsPage() {
       email: client.email,
       phone: client.phone || '',
       status: client.status as 'active' | 'inactive',
+      assigned_operator_id: client.assigned_operator_id || '',
     })
     setIsEditClientOpen(true)
+  }
+
+  // 클라이언트 담당자 배정 (테이블에서 직접 변경)
+  const handleAssignClientOperator = (clientId: string, operatorId: string | null) => {
+    updateClient.mutate({
+      id: clientId,
+      updates: {
+        assigned_operator_id: operatorId || null,
+      }
+    })
   }
 
   // 클라이언트 수정 처리
@@ -279,6 +291,7 @@ export default function AdminSettingsPage() {
         email: editClientForm.email,
         phone: editClientForm.phone || null,
         status: editClientForm.status,
+        assigned_operator_id: editClientForm.assigned_operator_id || null,
       }
     }, {
       onSuccess: () => {
@@ -289,7 +302,7 @@ export default function AdminSettingsPage() {
   }
 
   // 클라이언트 삭제 처리
-  const handleDeleteClient = (client: Client) => {
+  const handleDeleteClient = (client: ClientWithOperator) => {
     if (!confirm(`'${client.department_name}' 클라이언트를 삭제하시겠습니까?`)) return
 
     deleteClient.mutate(client.id)
@@ -339,7 +352,7 @@ export default function AdminSettingsPage() {
   }
 
   // 비밀번호 변경 다이얼로그 열기 (클라이언트)
-  const openPasswordDialogForClient = (client: Client) => {
+  const openPasswordDialogForClient = (client: ClientWithOperator) => {
     if (!client.user_id) {
       alert('이 클라이언트는 연결된 사용자 계정이 없습니다.')
       return
@@ -475,13 +488,18 @@ export default function AdminSettingsPage() {
                         {client.email}
                       </TableCell>
                       <TableCell>
-                        <Select defaultValue={operators.find(op => op.role === 'operator')?.id}>
+                        <Select
+                          value={client.assigned_operator_id || 'none'}
+                          onValueChange={(value) => handleAssignClientOperator(client.id, value === 'none' ? null : value)}
+                          disabled={updateClient.isPending}
+                        >
                           <SelectTrigger className="w-[130px]">
-                            <SelectValue />
+                            <SelectValue placeholder="미배정" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="none">미배정</SelectItem>
                             {operators
-                              .filter((op) => op.role === 'operator')
+                              .filter((op) => (op.role === 'operator' || op.role === 'admin') && op.status === 'active')
                               .map((op) => (
                                 <SelectItem key={op.id} value={op.id}>
                                   {op.name}
@@ -927,6 +945,30 @@ export default function AdminSettingsPage() {
                     <SelectItem value="inactive">비활성</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editAssignedOperator">배정 담당자</Label>
+                <Select
+                  value={editClientForm.assigned_operator_id || 'none'}
+                  onValueChange={(value) => setEditClientForm(prev => ({ ...prev, assigned_operator_id: value === 'none' ? null : value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="담당자 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">미배정</SelectItem>
+                    {operators
+                      .filter((op) => (op.role === 'operator' || op.role === 'admin') && op.status === 'active')
+                      .map((op) => (
+                        <SelectItem key={op.id} value={op.id}>
+                          {op.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  이 클라이언트가 요청 등록 시 자동으로 배정될 담당자입니다.
+                </p>
               </div>
             </div>
             <DialogFooter>

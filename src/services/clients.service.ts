@@ -5,18 +5,29 @@ type Client = Database['public']['Tables']['clients']['Row']
 type ClientInsert = Database['public']['Tables']['clients']['Insert']
 type ClientUpdate = Database['public']['Tables']['clients']['Update']
 
+export interface ClientWithOperator extends Client {
+  assigned_operator?: {
+    id: string
+    name: string
+    email: string
+  } | null
+}
+
 export const clientsService = {
-  async getAll(): Promise<Client[]> {
+  async getAll(): Promise<ClientWithOperator[]> {
     console.log('clientsService.getAll() 호출')
     const supabase = createClient()
     const { data, error } = await supabase
       .from('clients')
-      .select('*')
+      .select(`
+        *,
+        assigned_operator:profiles!clients_assigned_operator_id_fkey(id, name, email)
+      `)
       .order('created_at', { ascending: false })
 
     console.log('clientsService.getAll() 결과:', { data, error })
     if (error) throw error
-    return data
+    return data as ClientWithOperator[]
   },
 
   async getById(id: string): Promise<Client | null> {
