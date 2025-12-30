@@ -189,7 +189,7 @@ export default function OperatorRequestsPage() {
                     <TableHead className="w-auto">제목</TableHead>
                     <TableHead className="w-[80px]">유형</TableHead>
                     <TableHead className="w-[80px]">플랫폼</TableHead>
-                    <TableHead className="w-[60px]">긴급도</TableHead>
+                    <TableHead className="w-[70px]">긴급도</TableHead>
                     <TableHead className="w-[70px]">상태</TableHead>
                     <TableHead className="w-[70px]">담당자</TableHead>
                     <TableHead className="w-[85px]">등록일</TableHead>

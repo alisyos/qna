@@ -53,6 +53,19 @@ export const storageService = {
       .from('request_attachments')
       .select('*')
       .eq('request_id', requestId)
+      .is('comment_id', null)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data
+  },
+
+  async getAttachmentsByCommentId(commentId: string): Promise<Attachment[]> {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('request_attachments')
+      .select('*')
+      .eq('comment_id', commentId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -73,16 +86,28 @@ export const storageService = {
 
   async deleteAttachment(id: string, filePath: string): Promise<void> {
     const supabase = createClient()
+    console.log('deleteAttachment called:', { id, filePath })
 
     // Delete file from storage
-    await this.deleteFile(filePath)
+    try {
+      await this.deleteFile(filePath)
+      console.log('Storage file deleted successfully')
+    } catch (storageError) {
+      console.error('Storage delete error:', storageError)
+      // Storage 삭제 실패해도 DB 레코드는 삭제 시도
+    }
 
     // Delete record from database
+    console.log('Attempting to delete DB record...')
     const { error } = await supabase
       .from('request_attachments')
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) {
+      console.error('DB delete error:', error)
+      throw error
+    }
+    console.log('DB record deleted successfully')
   },
 }

@@ -162,6 +162,7 @@ export type Database = {
         Row: {
           id: string
           request_id: string
+          comment_id: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -172,6 +173,7 @@ export type Database = {
         Insert: {
           id?: string
           request_id: string
+          comment_id?: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -182,6 +184,7 @@ export type Database = {
         Update: {
           id?: string
           request_id?: string
+          comment_id?: string | null
           file_name?: string
           file_path?: string
           file_size?: number

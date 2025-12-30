@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>키워드 광고 대행 클라이언트 요청 관리 시스템 - 사용 가이드</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f8fafc;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      color: white;
+      padding: 60px 20px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    nav.toc {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 40px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    nav.toc h2 {
+      font-size: 1.25rem;
+      margin-bottom: 20px;
+      color: #1e40af;
+    }
+
+    nav.toc ul {
+      list-style: none;
+    }
+
+    nav.toc > ul > li {
+      margin-bottom: 10px;
+    }
+
+    nav.toc a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    nav.toc a:hover {
+      text-decoration: underline;
+    }
+
+    nav.toc ul ul {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+
+    nav.toc ul ul li {
+      margin-bottom: 6px;
+    }
+
+    nav.toc ul ul a {
+      font-weight: 400;
+      color: #64748b;
+    }
+
+    section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      color: #1e40af;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      color: #334155;
+      margin: 25px 0 15px 0;
+    }
+
+    h4 {
+      font-size: 1rem;
+      color: #475569;
+      margin: 20px 0 10px 0;
+    }
+
+    p {
+      margin-bottom: 15px;
+      color: #475569;
+    }
+
+    ol, ul {
+      margin-left: 20px;
+      margin-bottom: 15px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      color: #475569;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border: 1px solid #e2e8f0;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .badge-yellow {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge-blue {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-green {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    .badge-gray {
+      background-color: #f1f5f9;
+      color: #475569;
+    }
+
+    .badge-orange {
+      background-color: #ffedd5;
+      color: #c2410c;
+    }
+
+    .badge-red {
+      background-color: #fee2e2;
+      color: #dc2626;
+    }
+
+    .info-box {
+      background-color: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px 20px;
+      margin: 15px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #1e40af;
+    }
+
+    .warning-box {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 15px 20px;
+      margin: 15px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .warning-box p {
+      margin: 0;
+      color: #92400e;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 15px;
+    }
+
+    .step-number {
+      background: #3b82f6;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .role-card {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .role-item {
+      flex: 1;
+      min-width: 250px;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .role-item h4 {
+      margin-top: 0;
+      color: #1e40af;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin-left: 0;
+    }
+
+    .feature-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+
+    .feature-list li::before {
+      content: "✓";
+      color: #22c55e;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 1.5rem;
+      }
+
+      section {
+        padding: 20px;
+      }
+
+      .role-card {
+        flex-direction: column;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>키워드 광고 대행 클라이언트 요청 관리 시스템</h1>
+    <p>사용자 가이드</p>
+  </header>
+
+  <div class="container">
+    <!-- 목차 -->
+    <nav class="toc">
+      <h2>목차</h2>
+      <ul>
+        <li>
+          <a href="#section1">1. 시스템 접속</a>
+          <ul>
+            <li><a href="#section1-1">1.1 로그인</a></li>
+            <li><a href="#section1-2">1.2 로그인 후 기본 화면</a></li>
+            <li><a href="#section1-3">1.3 로그아웃</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#section2">2. 사용자 역할</a>
+        </li>
+        <li>
+          <a href="#section3">3. 클라이언트 담당자 가이드</a>
+          <ul>
+            <li><a href="#section3-1">3.1 요청 등록</a></li>
+            <li><a href="#section3-2">3.2 요청 현황 조회</a></li>
+            <li><a href="#section3-3">3.3 담당자 코멘트 확인</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#section4">4. 광고 운영 담당자 가이드</a>
+          <ul>
+            <li><a href="#section4-1">4.1 대시보드</a></li>
+            <li><a href="#section4-2">4.2 요청 처리</a></li>
+            <li><a href="#section4-3">4.3 코멘트 작성</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#section5">5. 관리자 가이드</a>
+          <ul>
+            <li><a href="#section5-1">5.1 통계</a></li>
+            <li><a href="#section5-2">5.2 시스템 관리</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#section6">6. 공통 기능</a>
+          <ul>
+            <li><a href="#section6-1">6.1 파일 첨부 및 다운로드</a></li>
+            <li><a href="#section6-2">6.2 요청 상태 설명</a></li>
+            <li><a href="#section6-3">6.3 긴급도 설명</a></li>
+            <li><a href="#section6-4">6.4 사이드바 네비게이션</a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- 1. 시스템 접속 -->
+    <section id="section1">
+      <h2>1. 시스템 접속</h2>
+
+      <h3 id="section1-1">1.1 로그인</h3>
+      <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-content">웹 브라우저에서 시스템 URL에 접속합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-content">로그인 페이지에서 <strong>이메일</strong>과 <strong>비밀번호</strong>를 입력합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-content"><strong>로그인</strong> 버튼을 클릭합니다.</div>
+      </div>
+
+      <h3 id="section1-2">1.2 로그인 후 기본 화면</h3>
+      <ul>
+        <li><strong>클라이언트 담당자</strong>: 요청 현황 페이지로 이동</li>
+        <li><strong>광고 운영 담당자/관리자</strong>: 대시보드 홈 페이지로 이동</li>
+      </ul>
+
+      <h3 id="section1-3">1.3 로그아웃</h3>
+      <p>화면 좌측 사이드바 하단의 <strong>로그아웃</strong> 버튼을 클릭합니다.</p>
+    </section>
+
+    <!-- 2. 사용자 역할 -->
+    <section id="section2">
+      <h2>2. 사용자 역할</h2>
+
+      <div class="role-card">
+        <div class="role-item">
+          <h4>클라이언트 담당자</h4>
+          <p>광고주 측 담당자로서 요청을 등록하고 진행 상황을 확인합니다.</p>
+          <ul class="feature-list">
+            <li>요청 등록</li>
+            <li>요청 현황 조회</li>
+          </ul>
+        </div>
+        <div class="role-item">
+          <h4>광고 운영 담당자</h4>
+          <p>클라이언트의 요청을 접수하고 처리합니다.</p>
+          <ul class="feature-list">
+            <li>대시보드</li>
+            <li>요청 처리</li>
+          </ul>
+        </div>
+        <div class="role-item">
+          <h4>관리자</h4>
+          <p>시스템 전체를 관리하고 통계를 확인합니다.</p>
+          <ul class="feature-list">
+            <li>대시보드</li>
+            <li>요청 처리</li>
+            <li>통계</li>
+            <li>시스템 관리</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 클라이언트 담당자 가이드 -->
+    <section id="section3">
+      <h2>3. 클라이언트 담당자 가이드</h2>
+      <p>클라이언트 담당자는 광고 운영에 관련된 요청을 등록하고 처리 현황을 확인할 수 있습니다.</p>
+
+      <h3 id="section3-1">3.1 요청 등록</h3>
+      <p><strong>메뉴 위치</strong>: 사이드바 > 요청 등록</p>
+
+      <h4>요청 등록 절차</h4>
+      <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-content"><strong>요청 등록</strong> 메뉴를 클릭합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-content">
+          요청 정보를 입력합니다:
+          <ul>
+            <li><strong>제목</strong>: 요청 내용을 요약한 제목 (필수)</li>
+            <li><strong>요청 유형</strong>: 예산 변경, 키워드 추가/삭제, 광고 소재 수정 등 (필수)</li>
+            <li><strong>광고 플랫폼</strong>: 네이버, 카카오, 구글 등 (필수)</li>
+            <li><strong>긴급도</strong>: 일반, 긴급, 최우선 (필수)</li>
+            <li><strong>희망 완료일</strong>: 요청 처리 희망 날짜</li>
+            <li><strong>상세 내용</strong>: 요청에 대한 자세한 설명 (필수)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-content"><strong>파일 첨부</strong> (선택사항): 파일 선택 버튼을 클릭하여 관련 파일을 첨부합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        <div class="step-content"><strong>등록</strong> 버튼을 클릭하여 요청을 제출합니다.</div>
+      </div>
+
+      <h4>요청 유형 설명</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>유형</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>예산 변경</td>
+            <td>광고 예산 증액, 감액, 재배분 요청</td>
+          </tr>
+          <tr>
+            <td>키워드 추가/삭제</td>
+            <td>광고 키워드 추가 또는 삭제 요청</td>
+          </tr>
+          <tr>
+            <td>광고 소재 수정</td>
+            <td>광고 문구, 이미지, 링크 등 수정 요청</td>
+          </tr>
+          <tr>
+            <td>타겟팅 변경</td>
+            <td>광고 노출 대상, 지역, 시간대 변경 요청</td>
+          </tr>
+          <tr>
+            <td>리포트 요청</td>
+            <td>광고 성과 리포트 요청</td>
+          </tr>
+          <tr>
+            <td>계정 설정</td>
+            <td>광고 계정 관련 설정 변경 요청</td>
+          </tr>
+          <tr>
+            <td>기타</td>
+            <td>위 유형에 해당하지 않는 요청</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="section3-2">3.2 요청 현황 조회</h3>
+      <p><strong>메뉴 위치</strong>: 사이드바 > 요청 현황</p>
+
+      <h4>요청 목록 확인</h4>
+      <ul>
+        <li>본인이 등록한 모든 요청 목록을 확인할 수 있습니다.</li>
+        <li><strong>검색</strong>: 요청번호, 제목으로 검색할 수 있습니다.</li>
+        <li><strong>필터</strong>: 상태(전체, 접수대기, 처리중, 완료, 보류)별로 필터링할 수 있습니다.</li>
+      </ul>
+
+      <h4>요청 상세 보기</h4>
+      <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-content">목록에서 <strong>보기</strong> 아이콘(눈 모양)을 클릭합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-content">
+          상세 정보 팝업에서 다음 내용을 확인할 수 있습니다:
+          <ul>
+            <li>요청 기본 정보 (제목, 유형, 플랫폼, 긴급도, 상태)</li>
+            <li>상세 내용</li>
+            <li>첨부 파일 (클릭하여 다운로드 가능)</li>
+            <li>담당자 코멘트 및 첨부 파일</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>요청 수정</h4>
+      <div class="warning-box">
+        <p><strong>접수대기</strong> 상태인 요청만 수정할 수 있습니다.</p>
+      </div>
+      <ul>
+        <li>상세 보기 팝업에서 <strong>수정</strong> 버튼을 클릭합니다.</li>
+        <li>내용 수정 후 <strong>저장</strong> 버튼을 클릭합니다.</li>
+        <li>첨부 파일 추가/삭제도 가능합니다.</li>
+      </ul>
+
+      <h3 id="section3-3">3.3 담당자 코멘트 확인</h3>
+      <p>요청 상세 보기 화면 하단에서 담당자가 작성한 코멘트를 확인할 수 있습니다.</p>
+      <ul>
+        <li>파란색 배경의 코멘트 영역에서 담당자의 답변을 확인합니다.</li>
+        <li>담당자가 첨부한 파일도 다운로드할 수 있습니다.</li>
+        <li>코멘트 작성 일시와 작성자 정보가 표시됩니다.</li>
+      </ul>
+    </section>
+
+    <!-- 4. 광고 운영 담당자 가이드 -->
+    <section id="section4">
+      <h2>4. 광고 운영 담당자 가이드</h2>
+      <p>광고 운영 담당자는 클라이언트의 요청을 접수하고 처리합니다.</p>
+
+      <h3 id="section4-1">4.1 대시보드</h3>
+      <p><strong>메뉴 위치</strong>: 사이드바 > 대시보드 (홈)</p>
+      <p>대시보드에서 다음 정보를 한눈에 확인할 수 있습니다:</p>
+
+      <h4>통계 카드</h4>
+      <ul>
+        <li><strong>오늘 접수</strong>: 오늘 새로 접수된 요청 수</li>
+        <li><strong>미처리 요청</strong>: 접수대기 상태인 요청 수</li>
+        <li><strong>처리중</strong>: 현재 처리 중인 요청 수</li>
+        <li><strong>기한 임박</strong>: 희망 완료일이 가까운 요청 수</li>
+      </ul>
+
+      <h4>주요 섹션</h4>
+      <ul>
+        <li><strong>긴급도별 미처리 요청</strong>: 긴급도에 따른 미처리 요청 현황</li>
+        <li><strong>내 담당 요청</strong>: 본인에게 배정된 요청 목록</li>
+        <li><strong>처리 기한 임박</strong>: 희망 완료일이 임박한 요청 알림</li>
+        <li><strong>오늘 접수된 요청</strong>: 오늘 새로 등록된 요청 목록</li>
+      </ul>
+
+      <h3 id="section4-2">4.2 요청 처리</h3>
+      <p><strong>메뉴 위치</strong>: 사이드바 > 요청 처리</p>
+
+      <h4>요청 목록 확인</h4>
+      <ul>
+        <li>모든 클라이언트의 요청 목록을 확인할 수 있습니다.</li>
+        <li><strong>상태 탭</strong>: 전체, 접수대기, 처리중, 완료, 보류 탭으로 빠르게 필터링</li>
+        <li><strong>검색</strong>: 요청번호, 제목, 클라이언트명으로 검색</li>
+        <li><strong>긴급도 필터</strong>: 전체, 최우선, 긴급, 일반으로 필터링</li>
+      </ul>
+
+      <h4>요청 상세 처리</h4>
+      <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-content">목록에서 제목을 클릭하거나 <strong>보기</strong> 아이콘을 클릭합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-content">상세 페이지에서 요청 내용과 첨부 파일을 확인합니다.</div>
+      </div>
+
+      <h4>상태 변경</h4>
+      <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-content">상세 페이지 상단의 <strong>상태</strong> 셀렉트박스를 클릭합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-content">
+          변경할 상태를 선택합니다:
+          <ul>
+            <li><span class="badge badge-yellow">접수대기</span> 아직 확인하지 않은 요청</li>
+            <li><span class="badge badge-blue">처리중</span> 현재 작업 중인 요청</li>
+            <li><span class="badge badge-green">완료</span> 처리가 완료된 요청</li>
+            <li><span class="badge badge-gray">보류</span> 추가 확인이 필요하여 보류된 요청</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-content">상태가 즉시 변경됩니다.</div>
+      </div>
+
+      <h4>담당자 배정</h4>
+      <ul>
+        <li>미배정 요청의 경우 담당자를 배정할 수 있습니다.</li>
+        <li>요청 목록에서 <strong>담당자 배정</strong> 아이콘(사람+ 모양)을 클릭합니다.</li>
+      </ul>
+
+      <h3 id="section4-3">4.3 코멘트 작성</h3>
+      <p>요청 상세 페이지 하단에서 코멘트를 작성할 수 있습니다.</p>
+
+      <h4>코멘트 작성 절차</h4>
+      <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-content">코멘트 입력란에 내용을 작성합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-content">
+          <strong>내부용 코멘트</strong> 체크박스:
+          <ul>
+            <li>체크 시: 담당자/관리자만 볼 수 있는 내부 메모</li>
+            <li>체크 해제 시: 클라이언트도 볼 수 있는 공개 코멘트</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-content"><strong>파일 첨부</strong> (선택사항): 파일 선택 버튼을 클릭하여 파일을 첨부합니다.</div>
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        <div class="step-content"><strong>코멘트 작성</strong> 버튼을 클릭합니다.</div>
+      </div>
+
+      <h4>코멘트 수정</h4>
+      <ul>
+        <li>본인이 작성한 코멘트의 <strong>수정</strong> 버튼을 클릭합니다.</li>
+        <li>내용을 수정합니다.</li>
+        <li>첨부 파일을 추가하거나 삭제할 수 있습니다.</li>
+        <li><strong>저장</strong> 버튼을 클릭합니다.</li>
+      </ul>
+
+      <h4>코멘트 삭제</h4>
+      <ul>
+        <li>본인이 작성한 코멘트의 <strong>삭제</strong> 버튼을 클릭합니다.</li>
+        <li>확인 메시지에서 <strong>확인</strong>을 클릭합니다.</li>
+      </ul>
+    </section>
+
+    <!-- 5. 관리자 가이드 -->
+    <section id="section5">
+      <h2>5. 관리자 가이드</h2>
+      <p>관리자는 운영 담당자의 모든 기능에 더해 통계 확인과 시스템 관리 기능을 사용할 수 있습니다.</p>
+
+      <h3 id="section5-1">5.1 통계</h3>
+      <p><strong>메뉴 위치</strong>: 사이드바 > 통계</p>
+      <ul>
+        <li>요청 처리 현황에 대한 통계 리포트를 확인할 수 있습니다.</li>
+        <li>기간별, 유형별, 담당자별 통계를 조회할 수 있습니다.</li>
+      </ul>
+
+      <h3 id="section5-2">5.2 시스템 관리</h3>
+      <p><strong>메뉴 위치</strong>: 사이드바 > 시스템 관리</p>
+
+      <h4>클라이언트 관리</h4>
+      <p>클라이언트 담당자 계정을 관리합니다.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>기능</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>클라이언트 추가</strong></td>
+            <td>클라이언트 추가 버튼 클릭 > 이메일, 비밀번호, 이름, 회사/부서명, 연락처 입력 > 추가</td>
+          </tr>
+          <tr>
+            <td><strong>클라이언트 수정</strong></td>
+            <td>목록에서 수정 버튼 클릭 > 정보 수정 > 저장</td>
+          </tr>
+          <tr>
+            <td><strong>비밀번호 변경</strong></td>
+            <td>목록에서 비밀번호 변경 버튼 클릭 > 새 비밀번호 입력 > 변경</td>
+          </tr>
+          <tr>
+            <td><strong>클라이언트 삭제</strong></td>
+            <td>목록에서 삭제 버튼 클릭 > 확인</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>담당자 관리</h4>
+      <p>광고 운영 담당자 계정을 관리합니다.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>기능</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>담당자 추가</strong></td>
+            <td>담당자 추가 버튼 클릭 > 이메일, 비밀번호, 이름, 역할(operator/admin) 입력 > 추가</td>
+          </tr>
+          <tr>
+            <td><strong>담당자 수정/삭제/비밀번호 변경</strong></td>
+            <td>클라이언트 관리와 동일한 방식</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 6. 공통 기능 -->
+    <section id="section6">
+      <h2>6. 공통 기능</h2>
+
+      <h3 id="section6-1">6.1 파일 첨부 및 다운로드</h3>
+
+      <h4>파일 첨부</h4>
+      <ul>
+        <li>요청 등록/수정 시 파일을 첨부할 수 있습니다.</li>
+        <li>코멘트 작성 시에도 파일을 첨부할 수 있습니다.</li>
+        <li><strong>파일 선택</strong> 버튼을 클릭하여 파일을 선택합니다.</li>
+        <li>여러 파일을 선택할 수 있습니다.</li>
+      </ul>
+
+      <h4>파일 다운로드</h4>
+      <ul>
+        <li>첨부된 파일명을 클릭하면 다운로드됩니다.</li>
+        <li>원본 파일명이 유지됩니다.</li>
+      </ul>
+
+      <h4>파일 삭제</h4>
+      <ul>
+        <li>수정 모드에서 파일 옆의 <strong>X</strong> 버튼을 클릭하여 삭제합니다.</li>
+      </ul>
+
+      <h3 id="section6-2">6.2 요청 상태 설명</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>상태</th>
+            <th>설명</th>
+            <th>표시</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>접수대기</td>
+            <td>요청이 등록되었으나 아직 담당자가 확인하지 않은 상태</td>
+            <td><span class="badge badge-yellow">접수대기</span></td>
+          </tr>
+          <tr>
+            <td>처리중</td>
+            <td>담당자가 요청을 확인하고 처리 중인 상태</td>
+            <td><span class="badge badge-blue">처리중</span></td>
+          </tr>
+          <tr>
+            <td>완료</td>
+            <td>요청 처리가 완료된 상태</td>
+            <td><span class="badge badge-green">완료</span></td>
+          </tr>
+          <tr>
+            <td>보류</td>
+            <td>추가 확인이 필요하여 처리가 보류된 상태</td>
+            <td><span class="badge badge-gray">보류</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="section6-3">6.3 긴급도 설명</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>긴급도</th>
+            <th>설명</th>
+            <th>표시</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>일반</td>
+            <td>일반적인 처리 우선순위</td>
+            <td><span class="badge badge-green">일반</span></td>
+          </tr>
+          <tr>
+            <td>긴급</td>
+            <td>빠른 처리가 필요한 요청</td>
+            <td><span class="badge badge-orange">긴급</span></td>
+          </tr>
+          <tr>
+            <td>최우선</td>
+            <td>가장 높은 우선순위로 즉시 처리 필요</td>
+            <td><span class="badge badge-red">최우선</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="section6-4">6.4 사이드바 네비게이션</h3>
+      <p>화면 좌측의 사이드바를 통해 메뉴를 이동할 수 있습니다.</p>
+      <ul>
+        <li>각 메뉴를 클릭하면 해당 페이지로 이동합니다.</li>
+        <li>현재 위치한 메뉴는 하이라이트 표시됩니다.</li>
+        <li>사이드바 하단에 로그인된 사용자 정보와 로그아웃 버튼이 있습니다.</li>
+      </ul>
+    </section>
+  </div>
+
+  <footer>
+    <p>키워드 광고 대행 클라이언트 요청 관리 시스템 &copy; 2024</p>
+    <p>시스템 사용 중 문제가 발생하거나 추가 문의사항이 있는 경우, 시스템 관리자에게 문의해 주세요.</p>
+  </footer>
+</body>
+</html>

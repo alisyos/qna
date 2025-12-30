@@ -25,6 +25,22 @@ export function useCreateComment() {
   })
 }
 
+export function useUpdateComment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, content, isInternal, requestId }: {
+      id: string
+      content: string
+      isInternal: boolean
+      requestId: string
+    }) => commentsService.update(id, content, isInternal),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.requestId] })
+    },
+  })
+}
+
 export function useDeleteComment() {
   const queryClient = useQueryClient()
 

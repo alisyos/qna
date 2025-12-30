@@ -32,8 +32,8 @@ import {
 import type { RequestStatus } from '@/types'
 import { useAuthContext } from '@/components/layout/AuthProvider'
 import { useRequest, useUpdateRequestStatus, useAssignOperator } from '@/hooks/useRequests'
-import { useComments, useCreateComment } from '@/hooks/useComments'
-import { useAttachments, useSignedUrl } from '@/hooks/useFileUpload'
+import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from '@/hooks/useComments'
+import { useAttachments, useSignedUrl, useCommentFileUpload, useDeleteAttachment } from '@/hooks/useFileUpload'
 import { useOperators } from '@/hooks/useOperators'
 import {
   ArrowLeft,
@@ -44,10 +44,11 @@ import {
   Paperclip,
   Download,
   Send,
-  CheckCircle,
-  Clock,
-  Pause,
   Loader2,
+  X,
+  Pencil,
+  Trash2,
+  Check,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -65,10 +66,23 @@ export default function RequestDetailPage() {
   const updateStatus = useUpdateRequestStatus()
   const assignOperator = useAssignOperator()
   const createComment = useCreateComment()
+  const updateComment = useUpdateComment()
+  const deleteComment = useDeleteComment()
   const getSignedUrl = useSignedUrl()
+  const commentFileUpload = useCommentFileUpload()
+  const deleteAttachment = useDeleteAttachment()
 
   const [newComment, setNewComment] = useState('')
   const [isInternal, setIsInternal] = useState(false)
+  const [commentFiles, setCommentFiles] = useState<File[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // 코멘트 수정 상태
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState('')
+  const [editingIsInternal, setEditingIsInternal] = useState(false)
+  const [editingNewFiles, setEditingNewFiles] = useState<File[]>([])
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([])
 
   if (isLoading) {
     return (
@@ -101,20 +115,153 @@ export default function RequestDetailPage() {
     assignOperator.mutate({ id: requestId, operatorId })
   }
 
-  const handleCommentSubmit = () => {
+  const handleCommentSubmit = async () => {
     if (!newComment.trim() || !user) return
 
-    createComment.mutate({
-      request_id: requestId,
-      author_id: user.id,
-      content: newComment.trim(),
-      is_internal: isInternal,
-    }, {
-      onSuccess: () => {
-        setNewComment('')
-        setIsInternal(false)
+    setIsSubmitting(true)
+    try {
+      // 1. 코멘트 생성
+      const comment = await new Promise<{ id: string }>((resolve, reject) => {
+        createComment.mutate({
+          request_id: requestId,
+          author_id: user.id,
+          content: newComment.trim(),
+          is_internal: isInternal,
+        }, {
+          onSuccess: (data) => resolve(data),
+          onError: (error) => reject(error),
+        })
+      })
+
+      // 2. 첨부파일 업로드
+      if (commentFiles.length > 0) {
+        for (const file of commentFiles) {
+          await commentFileUpload.mutateAsync({
+            file,
+            requestId,
+            commentId: comment.id,
+            userId: user.id,
+          })
+        }
       }
-    })
+
+      // 3. 상태 초기화
+      setNewComment('')
+      setIsInternal(false)
+      setCommentFiles([])
+    } catch (error) {
+      console.error('코멘트 등록 실패:', error)
+      alert('코멘트 등록에 실패했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleCommentFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setCommentFiles(prev => [...prev, ...Array.from(e.target.files!)])
+    }
+    e.target.value = ''
+  }
+
+  const removeCommentFile = (index: number) => {
+    setCommentFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // 코멘트 수정 시작
+  const startEditComment = (comment: { id: string; content: string; is_internal: boolean }) => {
+    setEditingCommentId(comment.id)
+    setEditingContent(comment.content)
+    setEditingIsInternal(comment.is_internal)
+    setEditingNewFiles([])
+    setDeletedAttachmentIds([])
+  }
+
+  // 코멘트 수정 취소
+  const cancelEditComment = () => {
+    setEditingCommentId(null)
+    setEditingContent('')
+    setEditingIsInternal(false)
+    setEditingNewFiles([])
+    setDeletedAttachmentIds([])
+  }
+
+  // 수정 모드에서 파일 선택
+  const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setEditingNewFiles(prev => [...prev, ...Array.from(e.target.files!)])
+    }
+    e.target.value = ''
+  }
+
+  // 수정 모드에서 새 파일 제거
+  const removeEditingNewFile = (index: number) => {
+    setEditingNewFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // 수정 모드에서 기존 첨부파일 삭제 표시
+  const markAttachmentForDeletion = (attachmentId: string) => {
+    setDeletedAttachmentIds(prev => [...prev, attachmentId])
+  }
+
+  // 수정 모드에서 삭제 표시 취소
+  const unmarkAttachmentForDeletion = (attachmentId: string) => {
+    setDeletedAttachmentIds(prev => prev.filter(id => id !== attachmentId))
+  }
+
+  // 코멘트 수정 저장
+  const handleSaveComment = async () => {
+    if (!editingCommentId || !editingContent.trim() || !user) return
+
+    try {
+      // 1. 코멘트 내용 수정
+      await updateComment.mutateAsync({
+        id: editingCommentId,
+        content: editingContent.trim(),
+        isInternal: editingIsInternal,
+        requestId,
+      })
+
+      // 2. 삭제 표시된 첨부파일 삭제
+      for (const attachmentId of deletedAttachmentIds) {
+        const comment = comments.find(c => c.id === editingCommentId)
+        const attachment = comment?.attachments?.find(a => a.id === attachmentId)
+        if (attachment) {
+          await deleteAttachment.mutateAsync({
+            id: attachmentId,
+            filePath: attachment.file_path,
+            requestId,
+          })
+        }
+      }
+
+      // 3. 새 첨부파일 업로드
+      for (const file of editingNewFiles) {
+        await commentFileUpload.mutateAsync({
+          file,
+          requestId,
+          commentId: editingCommentId,
+          userId: user.id,
+        })
+      }
+
+      cancelEditComment()
+    } catch (error) {
+      console.error('코멘트 수정 실패:', error)
+      alert('코멘트 수정에 실패했습니다.')
+    }
+  }
+
+  // 코멘트 삭제
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('코멘트를 삭제하시겠습니까? 첨부파일도 함께 삭제됩니다.')) return
+
+    try {
+      await deleteComment.mutateAsync({ id: commentId, requestId })
+    } catch (error) {
+      console.error('코멘트 삭제 실패:', error)
+      alert('코멘트 삭제에 실패했습니다.')
+    }
   }
 
   const handleDownload = async (filePath: string, fileName: string) => {
@@ -181,44 +328,26 @@ export default function RequestDetailPage() {
                 </CardDescription>
               </div>
 
-              {/* 상태 변경 버튼 */}
-              <div className="flex gap-2">
-                {status === 'pending' && (
-                  <Button
-                    onClick={() => handleStatusChange('in_progress')}
-                    disabled={updateStatus.isPending}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    처리 시작
-                  </Button>
-                )}
-                {status === 'in_progress' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleStatusChange('on_hold')}
-                      disabled={updateStatus.isPending}
-                    >
-                      <Pause className="w-4 h-4 mr-2" />
-                      보류
-                    </Button>
-                    <Button
-                      onClick={() => handleStatusChange('completed')}
-                      disabled={updateStatus.isPending}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      완료 처리
-                    </Button>
-                  </>
-                )}
-                {status === 'on_hold' && (
-                  <Button
-                    onClick={() => handleStatusChange('in_progress')}
-                    disabled={updateStatus.isPending}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    처리 재개
-                  </Button>
+              {/* 상태 변경 셀렉트박스 */}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-gray-500 whitespace-nowrap">상태 변경:</Label>
+                <Select
+                  value={status}
+                  onValueChange={(value) => handleStatusChange(value as RequestStatus)}
+                  disabled={updateStatus.isPending}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">접수대기</SelectItem>
+                    <SelectItem value="in_progress">처리중</SelectItem>
+                    <SelectItem value="completed">완료</SelectItem>
+                    <SelectItem value="on_hold">보류</SelectItem>
+                  </SelectContent>
+                </Select>
+                {updateStatus.isPending && (
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
                 )}
               </div>
             </div>
@@ -305,27 +434,206 @@ export default function RequestDetailPage() {
                             : 'bg-gray-50 mr-8'
                         }`}
                       >
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">
-                              {comment.author?.name || '알 수 없음'}
-                            </span>
-                            {comment.author?.role !== 'client' && (
-                              <span className="text-xs text-gray-500">
-                                (담당자)
-                              </span>
+                        {editingCommentId === comment.id ? (
+                          /* 수정 모드 */
+                          <div className="space-y-3">
+                            <Textarea
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              rows={3}
+                            />
+
+                            {/* 기존 첨부파일 */}
+                            {comment.attachments && comment.attachments.length > 0 && (
+                              <div className="space-y-1">
+                                <p className="text-xs text-gray-500">기존 첨부파일</p>
+                                {comment.attachments.map((file) => (
+                                  <div
+                                    key={file.id}
+                                    className={`flex items-center justify-between px-2 py-1.5 rounded text-sm ${
+                                      deletedAttachmentIds.includes(file.id)
+                                        ? 'bg-red-50 line-through text-gray-400'
+                                        : 'bg-gray-100'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <Paperclip className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate text-xs">{file.file_name}</span>
+                                    </div>
+                                    {deletedAttachmentIds.includes(file.id) ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => unmarkAttachmentForDeletion(file.id)}
+                                        className="text-xs text-blue-600 hover:underline"
+                                      >
+                                        복원
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => markAttachmentForDeletion(file.id)}
+                                        className="text-gray-400 hover:text-red-500"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             )}
-                            {comment.is_internal && (
-                              <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded">
-                                내부 메모
-                              </span>
+
+                            {/* 새로 추가할 파일 */}
+                            {editingNewFiles.length > 0 && (
+                              <div className="space-y-1">
+                                <p className="text-xs text-gray-500">새 첨부파일</p>
+                                {editingNewFiles.map((file, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between px-2 py-1.5 bg-blue-50 rounded text-sm"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <Paperclip className="w-3 h-3 flex-shrink-0 text-blue-600" />
+                                      <span className="truncate text-xs">{file.name}</span>
+                                      <span className="text-xs text-gray-400">({formatFileSize(file.size)})</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeEditingNewFile(index)}
+                                      className="text-gray-400 hover:text-red-500"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
                             )}
+
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`edit-internal-${comment.id}`}
+                                    checked={editingIsInternal}
+                                    onCheckedChange={(checked) => setEditingIsInternal(checked as boolean)}
+                                  />
+                                  <Label htmlFor={`edit-internal-${comment.id}`} className="text-sm text-gray-600">
+                                    내부 메모
+                                  </Label>
+                                </div>
+                                <div>
+                                  <input
+                                    type="file"
+                                    id={`edit-file-${comment.id}`}
+                                    multiple
+                                    onChange={handleEditFileSelect}
+                                    className="hidden"
+                                  />
+                                  <label htmlFor={`edit-file-${comment.id}`}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="cursor-pointer"
+                                      asChild
+                                    >
+                                      <span>
+                                        <Paperclip className="w-3.5 h-3.5 mr-1" />
+                                        파일 추가
+                                      </span>
+                                    </Button>
+                                  </label>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={cancelEditComment}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  취소
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={handleSaveComment}
+                                  disabled={updateComment.isPending || deleteAttachment.isPending || commentFileUpload.isPending || !editingContent.trim()}
+                                >
+                                  {(updateComment.isPending || deleteAttachment.isPending || commentFileUpload.isPending) ? (
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  ) : (
+                                    <Check className="w-4 h-4 mr-1" />
+                                  )}
+                                  저장
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-xs text-gray-500">
-                            {format(parseISO(comment.created_at), 'MM.dd HH:mm')}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700">{comment.content}</p>
+                        ) : (
+                          /* 보기 모드 */
+                          <>
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">
+                                  {comment.author?.name || '알 수 없음'}
+                                </span>
+                                {comment.author?.role !== 'client' && (
+                                  <span className="text-xs text-gray-500">
+                                    (담당자)
+                                  </span>
+                                )}
+                                {comment.is_internal && (
+                                  <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded">
+                                    내부 메모
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {format(parseISO(comment.created_at), 'MM.dd HH:mm')}
+                                </span>
+                                {/* 본인이 작성한 코멘트만 수정/삭제 가능 */}
+                                {user && comment.author_id === user.id && (
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => startEditComment(comment)}
+                                      className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                      title="수정"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteComment(comment.id)}
+                                      className="p-1 text-gray-400 hover:text-red-600 rounded"
+                                      title="삭제"
+                                      disabled={deleteComment.isPending}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-700">{comment.content}</p>
+                            {/* 코멘트 첨부파일 */}
+                            {comment.attachments && comment.attachments.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="flex flex-wrap gap-2">
+                                  {comment.attachments.map((file) => (
+                                    <button
+                                      key={file.id}
+                                      onClick={() => handleDownload(file.file_path, file.file_name)}
+                                      className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border text-xs text-gray-600 hover:bg-gray-50"
+                                    >
+                                      <Paperclip className="w-3 h-3" />
+                                      <span className="max-w-[150px] truncate">{file.file_name}</span>
+                                      <Download className="w-3 h-3 text-gray-400" />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     ))
                   )}
@@ -339,24 +647,77 @@ export default function RequestDetailPage() {
                     onChange={(e) => setNewComment(e.target.value)}
                     rows={3}
                   />
+
+                  {/* 첨부파일 목록 */}
+                  {commentFiles.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {commentFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded text-sm"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Paperclip className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{file.name}</span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                              ({formatFileSize(file.size)})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeCommentFile(index)}
+                            className="text-gray-400 hover:text-red-500"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center mt-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="internal"
-                        checked={isInternal}
-                        onCheckedChange={(checked) =>
-                          setIsInternal(checked as boolean)
-                        }
-                      />
-                      <Label htmlFor="internal" className="text-sm text-gray-600">
-                        내부 메모 (클라이언트에게 표시되지 않음)
-                      </Label>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="internal"
+                          checked={isInternal}
+                          onCheckedChange={(checked) =>
+                            setIsInternal(checked as boolean)
+                          }
+                        />
+                        <Label htmlFor="internal" className="text-sm text-gray-600">
+                          내부 메모
+                        </Label>
+                      </div>
+                      <div>
+                        <input
+                          type="file"
+                          id="comment-file"
+                          multiple
+                          onChange={handleCommentFileSelect}
+                          className="hidden"
+                        />
+                        <label htmlFor="comment-file">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer"
+                            asChild
+                          >
+                            <span>
+                              <Paperclip className="w-4 h-4 mr-1" />
+                              파일 첨부
+                            </span>
+                          </Button>
+                        </label>
+                      </div>
                     </div>
                     <Button
                       onClick={handleCommentSubmit}
-                      disabled={!newComment.trim() || createComment.isPending}
+                      disabled={!newComment.trim() || isSubmitting}
                     >
-                      {createComment.isPending ? (
+                      {isSubmitting ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Send className="w-4 h-4 mr-2" />

@@ -114,17 +114,28 @@ export default function ClientRequestsPage() {
 
   // 파일 삭제
   const handleDeleteFile = async (id: string, filePath: string) => {
-    if (!selectedRequest) return
-    if (!confirm('파일을 삭제하시겠습니까?')) return
+    console.log('handleDeleteFile called:', { id, filePath, selectedRequest: selectedRequest?.id })
 
+    if (!selectedRequest) {
+      console.log('No selectedRequest')
+      return
+    }
+    if (!confirm('파일을 삭제하시겠습니까?')) {
+      console.log('User cancelled')
+      return
+    }
+
+    console.log('Attempting to delete attachment...')
     try {
       await deleteAttachment.mutateAsync({
         id,
         filePath,
         requestId: selectedRequest.id,
       })
+      console.log('Delete successful')
     } catch (error) {
       console.error('File delete failed:', error)
+      alert(`파일 삭제에 실패했습니다.\n\n오류: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -326,7 +337,7 @@ export default function ClientRequestsPage() {
                     <TableHead className="w-auto">제목</TableHead>
                     <TableHead className="w-[80px]">요청유형</TableHead>
                     <TableHead className="w-[80px]">플랫폼</TableHead>
-                    <TableHead className="w-[60px]">긴급도</TableHead>
+                    <TableHead className="w-[70px]">긴급도</TableHead>
                     <TableHead className="w-[70px]">상태</TableHead>
                     <TableHead className="w-[85px]">등록일</TableHead>
                     <TableHead className="w-[50px]">상세</TableHead>
@@ -712,29 +723,52 @@ export default function ClientRequestsPage() {
                     )}
 
                     {/* 담당자 코멘트 */}
-                    <div>
-                      <p className="text-sm text-gray-500 mb-2 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        담당자 코멘트
-                      </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-blue-200">
+                        <MessageSquare className="w-5 h-5 text-blue-600" />
+                        <span className="font-semibold text-blue-900">담당자 코멘트</span>
+                        {publicComments.length > 0 && (
+                          <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                            {publicComments.length}
+                          </span>
+                        )}
+                      </div>
                       <div className="space-y-3">
                         {publicComments.length === 0 ? (
-                          <p className="text-gray-400 text-sm">아직 코멘트가 없습니다.</p>
+                          <p className="text-blue-400 text-sm text-center py-2">아직 코멘트가 없습니다.</p>
                         ) : (
                           publicComments.map((comment) => (
                             <div
                               key={comment.id}
-                              className="p-3 rounded-lg bg-gray-50"
+                              className="p-3 rounded-lg bg-white border border-blue-100 shadow-sm"
                             >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm font-medium">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-semibold text-gray-800">
                                   {comment.author?.name || '담당자'}
                                 </span>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                                   {format(new Date(comment.created_at), 'MM.dd HH:mm')}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-700">{comment.content}</p>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+                              {/* 코멘트 첨부파일 */}
+                              {comment.attachments && comment.attachments.length > 0 && (
+                                <div className="mt-3 pt-2 border-t border-gray-100">
+                                  <div className="flex flex-wrap gap-2">
+                                    {comment.attachments.map((file) => (
+                                      <button
+                                        key={file.id}
+                                        onClick={() => handleDownload(file.file_path, file.file_name)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 rounded border border-blue-200 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+                                      >
+                                        <Paperclip className="w-3 h-3" />
+                                        <span className="max-w-[150px] truncate">{file.file_name}</span>
+                                        <Download className="w-3 h-3" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))
                         )}
