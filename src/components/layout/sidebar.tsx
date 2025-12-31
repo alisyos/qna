@@ -1,10 +1,22 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuthContext } from './AuthProvider'
+import { createClient } from '@/lib/supabase/client'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  Button,
+  Input,
+  Label,
+} from '@/components/ui'
 import {
   FileText,
   List,
@@ -14,7 +26,9 @@ import {
   Settings,
   LogOut,
   User,
-  Shield
+  Shield,
+  Key,
+  Loader2,
 } from 'lucide-react'
 
 type UserRole = 'client' | 'operator' | 'admin'
@@ -79,11 +93,69 @@ export function Sidebar() {
   const pathname = usePathname()
   const { profile, user, signOut } = useAuthContext()
 
+  // 비밀번호 변경 상태
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+
   // 디버깅용
   console.log('Sidebar - user:', user?.email, 'profile:', profile)
 
   const handleLogout = async () => {
     await signOut()
+  }
+
+  // 비밀번호 변경 핸들러
+  const handleChangePassword = async () => {
+    setPasswordError('')
+
+    // 유효성 검사
+    if (!newPassword || !confirmPassword) {
+      setPasswordError('모든 필드를 입력해주세요.')
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('비밀번호는 6자 이상이어야 합니다.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('비밀번호가 일치하지 않습니다.')
+      return
+    }
+
+    setIsChangingPassword(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) throw error
+
+      alert('비밀번호가 변경되었습니다.')
+      setIsPasswordDialogOpen(false)
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error) {
+      console.error('비밀번호 변경 실패:', error)
+      setPasswordError('비밀번호 변경에 실패했습니다.')
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  // 다이얼로그 닫기 시 초기화
+  const handleDialogClose = (open: boolean) => {
+    setIsPasswordDialogOpen(open)
+    if (!open) {
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordError('')
+    }
   }
 
   const userRole = profile?.role as UserRole | undefined
@@ -172,6 +244,13 @@ export function Sidebar() {
                 {ROLE_LABELS[userRole]}
               </span>
             </div>
+            <button
+              onClick={() => setIsPasswordDialogOpen(true)}
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              title="비밀번호 변경"
+            >
+              <Key className="w-4 h-4" />
+            </button>
           </div>
           <button
             onClick={handleLogout}
@@ -182,6 +261,62 @@ export function Sidebar() {
           </button>
         </div>
       )}
+
+      {/* 비밀번호 변경 다이얼로그 */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={handleDialogClose}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>비밀번호 변경</DialogTitle>
+            <DialogDescription>
+              새로운 비밀번호를 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">새 비밀번호</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="6자 이상 입력"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">새 비밀번호 확인</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="비밀번호 재입력"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            {passwordError && (
+              <p className="text-sm text-red-500">{passwordError}</p>
+            )}
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleDialogClose(false)}
+              >
+                취소
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleChangePassword}
+                disabled={isChangingPassword}
+              >
+                {isChangingPassword ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                변경
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   )
 }

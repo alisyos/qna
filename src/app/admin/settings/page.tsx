@@ -32,10 +32,19 @@ import {
   DialogFooter,
   Pagination,
 } from '@/components/ui'
-import { REQUEST_TYPE_LABELS } from '@/types'
-import type { RequestType } from '@/types'
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients'
 import { useOperators, useUpdateOperator, useDeleteOperator } from '@/hooks/useOperators'
+import {
+  useRequestTypes,
+  useCreateRequestType,
+  useUpdateRequestType,
+  useDeleteRequestType,
+  usePlatforms,
+  useCreatePlatform,
+  useUpdatePlatform,
+  useDeletePlatform,
+} from '@/hooks/useCategories'
+import type { RequestType as RequestTypeData, Platform as PlatformData } from '@/services/categories.service'
 import type { Database } from '@/lib/supabase/database.types'
 import type { ClientWithOperator } from '@/services/clients.service'
 
@@ -57,11 +66,19 @@ const ITEMS_PER_PAGE = 20
 export default function AdminSettingsPage() {
   const { data: clients = [], isLoading: clientsLoading } = useClients()
   const { data: operators = [], isLoading: operatorsLoading } = useOperators()
+  const { data: requestTypes = [], isLoading: requestTypesLoading } = useRequestTypes()
+  const { data: platforms = [], isLoading: platformsLoading } = usePlatforms()
   const createClient = useCreateClient()
   const updateClient = useUpdateClient()
   const deleteClient = useDeleteClient()
   const updateOperator = useUpdateOperator()
   const deleteOperator = useDeleteOperator()
+  const createRequestType = useCreateRequestType()
+  const updateRequestType = useUpdateRequestType()
+  const deleteRequestType = useDeleteRequestType()
+  const createPlatform = useCreatePlatform()
+  const updatePlatform = useUpdatePlatform()
+  const deletePlatform = useDeletePlatform()
 
   const [activeTab, setActiveTab] = useState<'clients' | 'operators' | 'categories'>('clients')
   const [clientsPage, setClientsPage] = useState(1)
@@ -89,6 +106,17 @@ export default function AdminSettingsPage() {
   const [passwordTarget, setPasswordTarget] = useState<{ userId: string; name: string; type: 'client' | 'operator' } | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [isPasswordUpdating, setIsPasswordUpdating] = useState(false)
+
+  // 카테고리 관리 상태
+  const [isAddRequestTypeOpen, setIsAddRequestTypeOpen] = useState(false)
+  const [isEditRequestTypeOpen, setIsEditRequestTypeOpen] = useState(false)
+  const [selectedRequestType, setSelectedRequestType] = useState<RequestTypeData | null>(null)
+  const [requestTypeForm, setRequestTypeForm] = useState({ code: '', label: '', description: '' })
+
+  const [isAddPlatformOpen, setIsAddPlatformOpen] = useState(false)
+  const [isEditPlatformOpen, setIsEditPlatformOpen] = useState(false)
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformData | null>(null)
+  const [platformForm, setPlatformForm] = useState({ code: '', label: '', description: '' })
 
   // 클라이언트 폼 상태
   const [clientForm, setClientForm] = useState({
@@ -642,91 +670,152 @@ export default function AdminSettingsPage() {
                 <CardDescription>요청 유형을 추가하거나 수정합니다.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {(Object.entries(REQUEST_TYPE_LABELS) as [RequestType, string][]).map(
-                    ([key, label]) => (
-                      <div
-                        key={key}
-                        className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg"
-                      >
-                        <span>{label}</span>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                {requestTypesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {requestTypes.map((type) => (
+                        <div
+                          key={type.id}
+                          className={`flex items-center justify-between px-4 py-3 rounded-lg ${
+                            type.is_active ? 'bg-gray-50' : 'bg-gray-100 opacity-60'
+                          }`}
+                        >
+                          <div>
+                            <span className="font-medium">{type.label}</span>
+                            <span className="ml-2 text-xs text-gray-500">({type.code})</span>
+                            {!type.is_active && (
+                              <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">비활성</span>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedRequestType(type)
+                                setRequestTypeForm({
+                                  code: type.code,
+                                  label: type.label,
+                                  description: type.description || '',
+                                })
+                                setIsEditRequestTypeOpen(true)
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(`"${type.label}" 유형을 ${type.is_active ? '비활성화' : '활성화'}하시겠습니까?`)) {
+                                  updateRequestType.mutate({
+                                    id: type.id,
+                                    updates: { is_active: !type.is_active },
+                                  })
+                                }
+                              }}
+                            >
+                              <Trash2 className={`w-4 h-4 ${type.is_active ? 'text-red-500' : 'text-green-500'}`} />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  )}
-                </div>
-                <Button variant="outline" className="w-full mt-4">
-                  <Plus className="w-4 h-4 mr-2" />
-                  요청 유형 추가
-                </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={() => {
+                        setRequestTypeForm({ code: '', label: '', description: '' })
+                        setIsAddRequestTypeOpen(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      요청 유형 추가
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
 
-            {/* 알림 설정 */}
+            {/* 플랫폼 관리 */}
             <Card>
               <CardHeader>
-                <CardTitle>알림 설정</CardTitle>
-                <CardDescription>시스템 알림 설정을 관리합니다.</CardDescription>
+                <CardTitle>플랫폼 관리</CardTitle>
+                <CardDescription>광고 플랫폼을 추가하거나 수정합니다.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b">
-                    <div>
-                      <p className="font-medium">새 요청 알림</p>
-                      <p className="text-sm text-gray-500">
-                        새 요청 등록 시 담당자에게 이메일 발송
-                      </p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="w-5 h-5 rounded border-gray-300"
-                    />
+                {platformsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b">
-                    <div>
-                      <p className="font-medium">상태 변경 알림</p>
-                      <p className="text-sm text-gray-500">
-                        요청 상태 변경 시 클라이언트에게 알림
-                      </p>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {platforms.map((platform) => (
+                        <div
+                          key={platform.id}
+                          className={`flex items-center justify-between px-4 py-3 rounded-lg ${
+                            platform.is_active ? 'bg-gray-50' : 'bg-gray-100 opacity-60'
+                          }`}
+                        >
+                          <div>
+                            <span className="font-medium">{platform.label}</span>
+                            <span className="ml-2 text-xs text-gray-500">({platform.code})</span>
+                            {!platform.is_active && (
+                              <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">비활성</span>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPlatform(platform)
+                                setPlatformForm({
+                                  code: platform.code,
+                                  label: platform.label,
+                                  description: platform.description || '',
+                                })
+                                setIsEditPlatformOpen(true)
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(`"${platform.label}" 플랫폼을 ${platform.is_active ? '비활성화' : '활성화'}하시겠습니까?`)) {
+                                  updatePlatform.mutate({
+                                    id: platform.id,
+                                    updates: { is_active: !platform.is_active },
+                                  })
+                                }
+                              }}
+                            >
+                              <Trash2 className={`w-4 h-4 ${platform.is_active ? 'text-red-500' : 'text-green-500'}`} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="w-5 h-5 rounded border-gray-300"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b">
-                    <div>
-                      <p className="font-medium">처리 기한 알림</p>
-                      <p className="text-sm text-gray-500">
-                        기한 24시간 전 담당자에게 알림
-                      </p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="w-5 h-5 rounded border-gray-300"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="font-medium">일일 리포트</p>
-                      <p className="text-sm text-gray-500">
-                        미처리 요청 현황 일일 리포트 발송
-                      </p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="w-5 h-5 rounded border-gray-300"
-                    />
-                  </div>
-                </div>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={() => {
+                        setPlatformForm({ code: '', label: '', description: '' })
+                        setIsAddPlatformOpen(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      플랫폼 추가
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1094,6 +1183,300 @@ export default function AdminSettingsPage() {
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
                 변경
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 요청 유형 추가 다이얼로그 */}
+        <Dialog open={isAddRequestTypeOpen} onOpenChange={setIsAddRequestTypeOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>요청 유형 추가</DialogTitle>
+              <DialogDescription>새 요청 유형을 추가합니다.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="rtCode">코드 *</Label>
+                <Input
+                  id="rtCode"
+                  placeholder="영문 소문자, 언더스코어 (예: budget_change)"
+                  value={requestTypeForm.code}
+                  onChange={(e) => setRequestTypeForm(prev => ({ ...prev, code: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rtLabel">표시명 *</Label>
+                <Input
+                  id="rtLabel"
+                  placeholder="화면에 표시될 이름 (예: 예산 변경)"
+                  value={requestTypeForm.label}
+                  onChange={(e) => setRequestTypeForm(prev => ({ ...prev, label: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rtDesc">설명</Label>
+                <Input
+                  id="rtDesc"
+                  placeholder="요청 유형에 대한 설명 (선택)"
+                  value={requestTypeForm.description}
+                  onChange={(e) => setRequestTypeForm(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddRequestTypeOpen(false)}>
+                취소
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!requestTypeForm.code || !requestTypeForm.label) {
+                    alert('코드와 표시명은 필수입니다.')
+                    return
+                  }
+                  createRequestType.mutate(
+                    {
+                      code: requestTypeForm.code,
+                      label: requestTypeForm.label,
+                      description: requestTypeForm.description || undefined,
+                    },
+                    {
+                      onSuccess: () => {
+                        setIsAddRequestTypeOpen(false)
+                        setRequestTypeForm({ code: '', label: '', description: '' })
+                      },
+                      onError: (error) => {
+                        alert('요청 유형 추가 실패: ' + error.message)
+                      },
+                    }
+                  )
+                }}
+                disabled={createRequestType.isPending}
+              >
+                {createRequestType.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                추가
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 요청 유형 수정 다이얼로그 */}
+        <Dialog open={isEditRequestTypeOpen} onOpenChange={setIsEditRequestTypeOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>요청 유형 수정</DialogTitle>
+              <DialogDescription>요청 유형 정보를 수정합니다.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editRtCode">코드 *</Label>
+                <Input
+                  id="editRtCode"
+                  placeholder="영문 소문자, 언더스코어 (예: budget_change)"
+                  value={requestTypeForm.code}
+                  onChange={(e) => setRequestTypeForm(prev => ({ ...prev, code: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editRtLabel">표시명 *</Label>
+                <Input
+                  id="editRtLabel"
+                  placeholder="화면에 표시될 이름 (예: 예산 변경)"
+                  value={requestTypeForm.label}
+                  onChange={(e) => setRequestTypeForm(prev => ({ ...prev, label: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editRtDesc">설명</Label>
+                <Input
+                  id="editRtDesc"
+                  placeholder="요청 유형에 대한 설명 (선택)"
+                  value={requestTypeForm.description}
+                  onChange={(e) => setRequestTypeForm(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditRequestTypeOpen(false)}>
+                취소
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!selectedRequestType || !requestTypeForm.code || !requestTypeForm.label) {
+                    alert('코드와 표시명은 필수입니다.')
+                    return
+                  }
+                  updateRequestType.mutate(
+                    {
+                      id: selectedRequestType.id,
+                      updates: {
+                        code: requestTypeForm.code,
+                        label: requestTypeForm.label,
+                        description: requestTypeForm.description || null,
+                      },
+                    },
+                    {
+                      onSuccess: () => {
+                        setIsEditRequestTypeOpen(false)
+                        setSelectedRequestType(null)
+                      },
+                      onError: (error) => {
+                        alert('요청 유형 수정 실패: ' + error.message)
+                      },
+                    }
+                  )
+                }}
+                disabled={updateRequestType.isPending}
+              >
+                {updateRequestType.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                저장
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 플랫폼 추가 다이얼로그 */}
+        <Dialog open={isAddPlatformOpen} onOpenChange={setIsAddPlatformOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>플랫폼 추가</DialogTitle>
+              <DialogDescription>새 광고 플랫폼을 추가합니다.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="pfCode">코드 *</Label>
+                <Input
+                  id="pfCode"
+                  placeholder="영문 소문자 (예: naver)"
+                  value={platformForm.code}
+                  onChange={(e) => setPlatformForm(prev => ({ ...prev, code: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pfLabel">표시명 *</Label>
+                <Input
+                  id="pfLabel"
+                  placeholder="화면에 표시될 이름 (예: 네이버 검색광고)"
+                  value={platformForm.label}
+                  onChange={(e) => setPlatformForm(prev => ({ ...prev, label: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pfDesc">설명</Label>
+                <Input
+                  id="pfDesc"
+                  placeholder="플랫폼에 대한 설명 (선택)"
+                  value={platformForm.description}
+                  onChange={(e) => setPlatformForm(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddPlatformOpen(false)}>
+                취소
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!platformForm.code || !platformForm.label) {
+                    alert('코드와 표시명은 필수입니다.')
+                    return
+                  }
+                  createPlatform.mutate(
+                    {
+                      code: platformForm.code,
+                      label: platformForm.label,
+                      description: platformForm.description || undefined,
+                    },
+                    {
+                      onSuccess: () => {
+                        setIsAddPlatformOpen(false)
+                        setPlatformForm({ code: '', label: '', description: '' })
+                      },
+                      onError: (error) => {
+                        alert('플랫폼 추가 실패: ' + error.message)
+                      },
+                    }
+                  )
+                }}
+                disabled={createPlatform.isPending}
+              >
+                {createPlatform.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                추가
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 플랫폼 수정 다이얼로그 */}
+        <Dialog open={isEditPlatformOpen} onOpenChange={setIsEditPlatformOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>플랫폼 수정</DialogTitle>
+              <DialogDescription>플랫폼 정보를 수정합니다.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editPfCode">코드 *</Label>
+                <Input
+                  id="editPfCode"
+                  placeholder="영문 소문자 (예: naver)"
+                  value={platformForm.code}
+                  onChange={(e) => setPlatformForm(prev => ({ ...prev, code: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editPfLabel">표시명 *</Label>
+                <Input
+                  id="editPfLabel"
+                  placeholder="화면에 표시될 이름 (예: 네이버 검색광고)"
+                  value={platformForm.label}
+                  onChange={(e) => setPlatformForm(prev => ({ ...prev, label: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editPfDesc">설명</Label>
+                <Input
+                  id="editPfDesc"
+                  placeholder="플랫폼에 대한 설명 (선택)"
+                  value={platformForm.description}
+                  onChange={(e) => setPlatformForm(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditPlatformOpen(false)}>
+                취소
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!selectedPlatform || !platformForm.code || !platformForm.label) {
+                    alert('코드와 표시명은 필수입니다.')
+                    return
+                  }
+                  updatePlatform.mutate(
+                    {
+                      id: selectedPlatform.id,
+                      updates: {
+                        code: platformForm.code,
+                        label: platformForm.label,
+                        description: platformForm.description || null,
+                      },
+                    },
+                    {
+                      onSuccess: () => {
+                        setIsEditPlatformOpen(false)
+                        setSelectedPlatform(null)
+                      },
+                      onError: (error) => {
+                        alert('플랫폼 수정 실패: ' + error.message)
+                      },
+                    }
+                  )
+                }}
+                disabled={updatePlatform.isPending}
+              >
+                {updatePlatform.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                저장
               </Button>
             </DialogFooter>
           </DialogContent>

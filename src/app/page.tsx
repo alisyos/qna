@@ -22,9 +22,7 @@ import {
 import {
   REQUEST_TYPE_LABELS,
   PRIORITY_LABELS,
-  STATUS_LABELS,
   PRIORITY_COLORS,
-  STATUS_COLORS,
 } from '@/types'
 import { useAuthContext } from '@/components/layout/AuthProvider'
 import { useRequests } from '@/hooks/useRequests'
@@ -36,8 +34,9 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
+  MessageSquare,
 } from 'lucide-react'
-import { format, isToday, differenceInHours, parseISO } from 'date-fns'
+import { format, isToday, differenceInHours, differenceInDays, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
 export default function HomePage() {
@@ -87,6 +86,16 @@ export default function HomePage() {
     return hoursUntil <= 24 && hoursUntil > 0
   })
 
+  // 최근 3일 이내 클라이언트 코멘트가 있는 요청 (전체 요청 대상)
+  const requestsWithNewComments = requests.filter((r) => {
+    if (!r.latest_client_comment || r.status === 'completed') return false
+    const daysSinceComment = differenceInDays(
+      new Date(),
+      parseISO(r.latest_client_comment.created_at)
+    )
+    return daysSinceComment <= 3
+  })
+
   const summaryCards = [
     {
       title: '오늘 접수',
@@ -95,7 +104,7 @@ export default function HomePage() {
       color: 'bg-blue-50',
     },
     {
-      title: '미처리 요청',
+      title: '접수대기',
       value: pendingRequests.length,
       icon: <Clock className="w-5 h-5 text-yellow-500" />,
       color: 'bg-yellow-50',
@@ -150,11 +159,126 @@ export default function HomePage() {
           ))}
         </div>
 
+        {/* 처리 기한 임박 알림 */}
+        {upcomingDeadlines.length > 0 && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-lg text-red-700 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                처리 기한 임박 요청
+              </CardTitle>
+              <CardDescription className="text-red-600">
+                24시간 이내 희망 처리일이 도래하는 요청입니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {upcomingDeadlines.map((request) => (
+                  <div
+                    key={request.id}
+                    className="flex items-center justify-between bg-white p-4 rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium">{request.title}</p>
+                      <p className="text-sm text-gray-600">
+                        {request.client?.contact_name || '-'} |{' '}
+                        {REQUEST_TYPE_LABELS[request.request_type]}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-red-600 font-medium">
+                        희망 처리일:{' '}
+                        {format(parseISO(request.desired_date!), 'M월 d일', {
+                          locale: ko,
+                        })}
+                      </p>
+                      <Link href={`/operator/requests/${request.id}`}>
+                        <Button size="sm" variant="outline" className="mt-2">
+                          처리하기
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 새 코멘트가 있는 요청 */}
+        {requestsWithNewComments.length > 0 && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg text-blue-700 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    새 코멘트가 있는 요청
+                  </CardTitle>
+                  <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    {requestsWithNewComments.length}
+                  </span>
+                </div>
+                <Link href="/operator/requests">
+                  <Button variant="ghost" size="sm" className="text-blue-700">
+                    전체 보기
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+              <CardDescription className="text-blue-600">
+                최근 3일 이내 클라이언트가 코멘트를 작성한 요청입니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[140px]">클라이언트</TableHead>
+                    <TableHead>제목</TableHead>
+                    <TableHead className="w-[250px]">최근 코멘트</TableHead>
+                    <TableHead className="w-[100px]">코멘트 시간</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requestsWithNewComments.slice(0, 5).map((request) => (
+                    <TableRow key={request.id} className="bg-white">
+                      <TableCell className="font-medium">
+                        {request.client?.contact_name || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/operator/requests/${request.id}`}
+                          className="hover:text-blue-600 hover:underline"
+                        >
+                          {request.title}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        <div className="truncate max-w-[230px]" title={request.latest_client_comment?.content}>
+                          {request.latest_client_comment?.content}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {request.latest_client_comment && format(
+                          parseISO(request.latest_client_comment.created_at),
+                          'M/d HH:mm',
+                          { locale: ko }
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-3 gap-6">
-          {/* 미처리 요청 현황 */}
+          {/* 접수대기 요청 현황 */}
           <Card className="col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg">미처리 요청 현황</CardTitle>
+              <CardTitle className="text-lg">접수대기 요청 현황</CardTitle>
               <CardDescription>긴급도별 분류</CardDescription>
             </CardHeader>
             <CardContent>
@@ -232,7 +356,7 @@ export default function HomePage() {
                     {inProgressRequests.slice(0, 5).map((request) => (
                       <TableRow key={request.id}>
                         <TableCell className="font-medium">
-                          {request.client?.department_name || '-'}
+                          {request.client?.contact_name || '-'}
                         </TableCell>
                         <TableCell>
                           <Link
@@ -263,128 +387,6 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* 처리 기한 임박 알림 */}
-        {upcomingDeadlines.length > 0 && (
-          <Card className="mt-6 border-red-200 bg-red-50">
-            <CardHeader>
-              <CardTitle className="text-lg text-red-700 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
-                처리 기한 임박 요청
-              </CardTitle>
-              <CardDescription className="text-red-600">
-                24시간 이내 희망 처리일이 도래하는 요청입니다.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {upcomingDeadlines.map((request) => (
-                  <div
-                    key={request.id}
-                    className="flex items-center justify-between bg-white p-4 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{request.title}</p>
-                      <p className="text-sm text-gray-600">
-                        {request.client?.department_name || '-'} |{' '}
-                        {REQUEST_TYPE_LABELS[request.request_type]}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-red-600 font-medium">
-                        희망 처리일:{' '}
-                        {format(parseISO(request.desired_date!), 'M월 d일', {
-                          locale: ko,
-                        })}
-                      </p>
-                      <Link href={`/operator/requests/${request.id}`}>
-                        <Button size="sm" variant="outline" className="mt-2">
-                          처리하기
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 오늘 접수된 요청 */}
-        <Card className="mt-6">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-lg">오늘 접수된 요청</CardTitle>
-                <CardDescription>
-                  {format(new Date(), 'yyyy년 M월 d일', { locale: ko })} 기준
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {todayRequests.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">오늘 접수된 요청이 없습니다.</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>요청번호</TableHead>
-                    <TableHead>클라이언트</TableHead>
-                    <TableHead>제목</TableHead>
-                    <TableHead>유형</TableHead>
-                    <TableHead>긴급도</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>접수시간</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {todayRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-mono text-sm">
-                        {request.request_number}
-                      </TableCell>
-                      <TableCell>{request.client?.department_name || '-'}</TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/operator/requests/${request.id}`}
-                          className="hover:text-blue-600 hover:underline"
-                        >
-                          {request.title}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        {REQUEST_TYPE_LABELS[request.request_type]}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            PRIORITY_COLORS[request.priority]
-                          }`}
-                        >
-                          {PRIORITY_LABELS[request.priority]}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            STATUS_COLORS[request.status]
-                          }`}
-                        >
-                          {STATUS_LABELS[request.status]}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {format(parseISO(request.created_at), 'HH:mm')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

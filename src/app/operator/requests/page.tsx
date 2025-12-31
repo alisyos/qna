@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Card,
@@ -23,6 +23,12 @@ import {
   TableRow,
   TableCell,
   Pagination,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui'
 import {
   REQUEST_TYPE_LABELS,
@@ -32,33 +38,88 @@ import {
   PRIORITY_COLORS,
   STATUS_COLORS,
 } from '@/types'
-import { useRequests } from '@/hooks/useRequests'
-import { Search, Filter, Eye, UserPlus, Loader2 } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { useRequests, useDeleteRequest } from '@/hooks/useRequests'
+import { useOperators } from '@/hooks/useOperators'
+import { Search, Eye, Loader2, RotateCcw, MessageSquare, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { format, parseISO, differenceInHours } from 'date-fns'
 
 const ITEMS_PER_PAGE = 20
 
+type SortField = 'created_at' | 'desired_date'
+type SortOrder = 'asc' | 'desc'
+
 export default function OperatorRequestsPage() {
   const { data: requests = [], isLoading } = useRequests()
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const { data: operators = [] } = useOperators()
+  const deleteRequest = useDeleteRequest()
+
+  // 필터 상태
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [platformFilter, setPlatformFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [operatorFilter, setOperatorFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
-  // 필터링된 요청 목록
-  const filteredRequests = requests.filter((request) => {
-    const matchesStatus =
-      statusFilter === 'all' || request.status === statusFilter
-    const matchesPriority =
-      priorityFilter === 'all' || request.priority === priorityFilter
-    const matchesSearch =
-      searchQuery === '' ||
-      request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (request.client?.department_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.request_number.toLowerCase().includes(searchQuery.toLowerCase())
+  // 정렬 상태
+  const [sortField, setSortField] = useState<SortField>('created_at')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
-    return matchesStatus && matchesPriority && matchesSearch
-  })
+  // 삭제 확인 다이얼로그
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [deleteTargetTitle, setDeleteTargetTitle] = useState<string>('')
+
+  // 활성 담당자 목록
+  const activeOperators = useMemo(() =>
+    operators.filter(op => op.status === 'active'),
+    [operators]
+  )
+
+  // 필터링된 요청 목록
+  const filteredRequests = useMemo(() => {
+    const filtered = requests.filter((request) => {
+      const matchesType = typeFilter === 'all' || request.request_type === typeFilter
+      const matchesPlatform = platformFilter === 'all' || request.platform === platformFilter
+      const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter
+      const matchesStatus = statusFilter === 'all' || request.status === statusFilter
+      const matchesOperator =
+        operatorFilter === 'all' ||
+        (operatorFilter === 'unassigned' && !request.operator_id) ||
+        request.operator_id === operatorFilter
+      const matchesSearch =
+        searchQuery === '' ||
+        request.request_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (request.client?.department_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (request.client?.contact_name || '').toLowerCase().includes(searchQuery.toLowerCase())
+
+      return matchesType && matchesPlatform && matchesPriority && matchesStatus && matchesOperator && matchesSearch
+    })
+
+    // 정렬
+    return [...filtered].sort((a, b) => {
+      let aValue: string | null = null
+      let bValue: string | null = null
+
+      if (sortField === 'created_at') {
+        aValue = a.created_at
+        bValue = b.created_at
+      } else if (sortField === 'desired_date') {
+        aValue = a.desired_date
+        bValue = b.desired_date
+      }
+
+      // null 처리 (null은 항상 마지막으로)
+      if (!aValue && !bValue) return 0
+      if (!aValue) return 1
+      if (!bValue) return -1
+
+      const comparison = aValue.localeCompare(bValue)
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+  }, [requests, typeFilter, platformFilter, priorityFilter, statusFilter, operatorFilter, searchQuery, sortField, sortOrder])
 
   // 페이지네이션
   const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE)
@@ -67,30 +128,70 @@ export default function OperatorRequestsPage() {
     currentPage * ITEMS_PER_PAGE
   )
 
-  // 필터 변경 시 페이지 리셋
-  const handleStatusFilter = (value: string) => {
-    setStatusFilter(value)
+  // 필터 변경 핸들러
+  const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
+    setter(value)
     setCurrentPage(1)
   }
 
-  const handlePriorityFilter = (value: string) => {
-    setPriorityFilter(value)
+  // 정렬 핸들러
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
     setCurrentPage(1)
   }
 
-  const handleSearch = (value: string) => {
-    setSearchQuery(value)
+  // 정렬 아이콘
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />
+    }
+    return sortOrder === 'asc'
+      ? <ArrowUp className="w-3 h-3 ml-1" />
+      : <ArrowDown className="w-3 h-3 ml-1" />
+  }
+
+  // 필터 초기화
+  const handleResetFilters = () => {
+    setTypeFilter('all')
+    setPlatformFilter('all')
+    setPriorityFilter('all')
+    setStatusFilter('all')
+    setOperatorFilter('all')
+    setSearchQuery('')
+    setSortField('created_at')
+    setSortOrder('desc')
     setCurrentPage(1)
   }
 
-  // 상태별 카운트
-  const statusCounts = {
-    all: requests.length,
-    pending: requests.filter((r) => r.status === 'pending').length,
-    in_progress: requests.filter((r) => r.status === 'in_progress').length,
-    completed: requests.filter((r) => r.status === 'completed').length,
-    on_hold: requests.filter((r) => r.status === 'on_hold').length,
+  // 삭제 핸들러
+  const handleDeleteClick = (id: string, title: string) => {
+    setDeleteTargetId(id)
+    setDeleteTargetTitle(title)
+    setDeleteDialogOpen(true)
   }
+
+  const handleDeleteConfirm = async () => {
+    if (deleteTargetId) {
+      await deleteRequest.mutateAsync(deleteTargetId)
+      setDeleteDialogOpen(false)
+      setDeleteTargetId(null)
+      setDeleteTargetTitle('')
+    }
+  }
+
+  // 필터 활성화 여부
+  const hasActiveFilters =
+    typeFilter !== 'all' ||
+    platformFilter !== 'all' ||
+    priorityFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    operatorFilter !== 'all' ||
+    searchQuery !== ''
 
   if (isLoading) {
     return (
@@ -111,60 +212,111 @@ export default function OperatorRequestsPage() {
           </p>
         </div>
 
-        {/* 상태 탭 */}
-        <div className="flex gap-2 mb-6">
-          {[
-            { key: 'all', label: '전체' },
-            { key: 'pending', label: '접수대기' },
-            { key: 'in_progress', label: '처리중' },
-            { key: 'completed', label: '완료' },
-            { key: 'on_hold', label: '보류' },
-          ].map((tab) => (
-            <Button
-              key={tab.key}
-              variant={statusFilter === tab.key ? 'default' : 'outline'}
-              onClick={() => handleStatusFilter(tab.key)}
-              className="relative"
-            >
-              {tab.label}
-              <span
-                className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                  statusFilter === tab.key
-                    ? 'bg-white/20 text-white'
-                    : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {statusCounts[tab.key as keyof typeof statusCounts]}
-              </span>
-            </Button>
-          ))}
-        </div>
-
         {/* 필터 및 검색 */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
+            <div className="space-y-4">
+              {/* 검색 */}
+              <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <Input
-                  placeholder="요청번호, 제목, 클라이언트명으로 검색"
+                  placeholder="요청번호, 제목, 클라이언트명(부서명, 이름)으로 검색"
                   value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setCurrentPage(1)
+                  }}
                   className="pl-10"
                 />
               </div>
-              <Select value={priorityFilter} onValueChange={handlePriorityFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="긴급도" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체 긴급도</SelectItem>
-                  <SelectItem value="critical">최우선</SelectItem>
-                  <SelectItem value="urgent">긴급</SelectItem>
-                  <SelectItem value="normal">일반</SelectItem>
-                </SelectContent>
-              </Select>
+
+              {/* 셀렉트 필터 */}
+              <div className="flex gap-3 flex-wrap">
+                {/* 유형 */}
+                <Select value={typeFilter} onValueChange={handleFilterChange(setTypeFilter)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="유형" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 유형</SelectItem>
+                    {Object.entries(REQUEST_TYPE_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* 플랫폼 */}
+                <Select value={platformFilter} onValueChange={handleFilterChange(setPlatformFilter)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="플랫폼" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 플랫폼</SelectItem>
+                    {Object.entries(PLATFORM_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* 긴급도 */}
+                <Select value={priorityFilter} onValueChange={handleFilterChange(setPriorityFilter)}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue placeholder="긴급도" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 긴급도</SelectItem>
+                    {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* 상태 */}
+                <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue placeholder="상태" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 상태</SelectItem>
+                    {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* 담당자 */}
+                <Select value={operatorFilter} onValueChange={handleFilterChange(setOperatorFilter)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="담당자" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 담당자</SelectItem>
+                    <SelectItem value="unassigned">미배정</SelectItem>
+                    {activeOperators.map((op) => (
+                      <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* 초기화 버튼 */}
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="h-10"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    초기화
+                  </Button>
+                )}
+              </div>
+
+              {/* 검색 결과 개수 */}
+              <div className="text-sm text-gray-500">
+                총 {filteredRequests.length}건
+                {hasActiveFilters && ` (전체 ${requests.length}건 중)`}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -184,7 +336,6 @@ export default function OperatorRequestsPage() {
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[90px]">요청번호</TableHead>
                     <TableHead className="w-[100px]">클라이언트</TableHead>
                     <TableHead className="w-auto">제목</TableHead>
                     <TableHead className="w-[80px]">유형</TableHead>
@@ -192,28 +343,61 @@ export default function OperatorRequestsPage() {
                     <TableHead className="w-[70px]">긴급도</TableHead>
                     <TableHead className="w-[70px]">상태</TableHead>
                     <TableHead className="w-[70px]">담당자</TableHead>
-                    <TableHead className="w-[85px]">등록일</TableHead>
-                    <TableHead className="w-[60px]">액션</TableHead>
+                    <TableHead
+                      className="w-[85px] cursor-pointer select-none hover:bg-gray-50"
+                      onClick={() => handleSort('created_at')}
+                    >
+                      <div className="flex items-center">
+                        등록일
+                        {getSortIcon('created_at')}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[85px] cursor-pointer select-none hover:bg-gray-50"
+                      onClick={() => handleSort('desired_date')}
+                    >
+                      <div className="flex items-center">
+                        희망일
+                        {getSortIcon('desired_date')}
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-[70px]">액션</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedRequests.map((request) => (
                     <TableRow key={request.id}>
-                      <TableCell className="font-mono truncate">
-                        {request.request_number}
-                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="truncate">{request.client?.department_name || '-'}</div>
                         <div className="truncate text-gray-500 font-normal">{request.client?.contact_name || ''}</div>
                       </TableCell>
-                      <TableCell className="truncate">
-                        <Link
-                          href={`/operator/requests/${request.id}`}
-                          className="hover:text-blue-600 hover:underline"
-                          title={request.title}
-                        >
-                          {request.title}
-                        </Link>
+                      <TableCell>
+                        {(() => {
+                          const hasNewClientComment = request.latest_client_comment &&
+                            differenceInHours(new Date(), parseISO(request.latest_client_comment.created_at)) < 24
+                          return (
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/operator/requests/${request.id}`}
+                                className="hover:text-blue-600 hover:underline truncate"
+                                title={request.title}
+                              >
+                                {request.title}
+                              </Link>
+                              {(request.comment_count ?? 0) > 0 && (
+                                <span className={`flex items-center gap-0.5 text-xs shrink-0 ${
+                                  hasNewClientComment ? 'text-blue-600 font-semibold' : 'text-gray-500'
+                                }`}>
+                                  <MessageSquare className={`w-3 h-3 ${hasNewClientComment ? 'text-blue-600' : ''}`} />
+                                  {request.comment_count}
+                                  {hasNewClientComment && (
+                                    <span className="ml-0.5 bg-blue-500 text-white text-[10px] px-1 py-0.5 rounded">NEW</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </TableCell>
                       <TableCell className="truncate">
                         {REQUEST_TYPE_LABELS[request.request_type]}
@@ -249,6 +433,11 @@ export default function OperatorRequestsPage() {
                       <TableCell className="text-gray-600">
                         {format(parseISO(request.created_at), 'MM.dd HH:mm')}
                       </TableCell>
+                      <TableCell className="text-gray-600">
+                        {request.desired_date
+                          ? format(parseISO(request.desired_date), 'MM.dd')
+                          : '-'}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-0.5">
                           <Link href={`/operator/requests/${request.id}`}>
@@ -256,11 +445,14 @@ export default function OperatorRequestsPage() {
                               <Eye className="w-3.5 h-3.5" />
                             </Button>
                           </Link>
-                          {!request.operator_id && (
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                              <UserPlus className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteClick(request.id, request.title)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -277,6 +469,31 @@ export default function OperatorRequestsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>요청 삭제</DialogTitle>
+            <DialogDescription>
+              "{deleteTargetTitle}" 요청을 삭제하시겠습니까?
+              <br />
+              삭제된 요청은 복구할 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              취소
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

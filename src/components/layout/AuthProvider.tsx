@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { authService } from '@/services/auth.service'
 import { clientsService } from '@/services/clients.service'
 import { Sidebar } from './sidebar'
+import { Footer } from './footer'
 import type { User } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -200,7 +201,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, profile, client, isAuthenticated, isLoading, signOut }}>
       <Sidebar />
-      <main className="ml-[230px]">{children}</main>
+      <div className="ml-[230px] min-h-screen flex flex-col">
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </div>
     </AuthContext.Provider>
   )
 }
